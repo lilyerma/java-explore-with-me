@@ -3,7 +3,7 @@ package explorewithme.ewm.events.service;
 import explorewithme.ewm.events.admin.AdminUpdateEventRequest;
 import explorewithme.ewm.events.admin.UpdateEventRequest;
 import explorewithme.ewm.events.dto.*;
-import explorewithme.ewm.events.repository.FilterSort;
+import explorewithme.ewm.search.FilterSort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

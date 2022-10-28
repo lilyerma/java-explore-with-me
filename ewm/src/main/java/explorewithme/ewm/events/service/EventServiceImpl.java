@@ -1,5 +1,6 @@
 package explorewithme.ewm.events.service;
 
+import explorewithme.ewm.comments.service.UtilCommentService;
 import explorewithme.ewm.events.State;
 import explorewithme.ewm.events.admin.AdminUpdateEventRequest;
 import explorewithme.ewm.events.admin.UpdateEventRequest;
@@ -13,6 +14,9 @@ import explorewithme.ewm.exception.ArgumentException;
 import explorewithme.ewm.exception.ConflictException;
 import explorewithme.ewm.exception.NotFoundException;
 import explorewithme.ewm.requests.services.UtilRequestService;
+import explorewithme.ewm.search.FilterSort;
+import explorewithme.ewm.search.SearchCriteria;
+import explorewithme.ewm.search.SearchOperation;
 import explorewithme.ewm.users.UserMapper;
 import explorewithme.ewm.users.UserService;
 import explorewithme.ewm.util.OffsetBasedPageRequest;
@@ -32,7 +36,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static explorewithme.ewm.events.State.*;
-import static explorewithme.ewm.events.repository.FilterSort.VIEWS;
+import static explorewithme.ewm.search.FilterSort.VIEWS;
 
 @Slf4j
 @Service
@@ -45,6 +49,8 @@ public class EventServiceImpl implements EventService {
 
     @Lazy
     private final UtilRequestService utilRequestService;
+    @Lazy
+    private final UtilCommentService utilCommentService;
 
     private final UserService userService;
     private final EventSpecifications eventSpecifications;
@@ -168,6 +174,9 @@ public class EventServiceImpl implements EventService {
       dtoToReturn.setConfirmedRequests(utilRequestService.getCountOfApproveRequest(id));
         log.debug("asking userservice for userShort DTO");
       dtoToReturn.setInitiator(UserMapper.fromUserDtoToShort(userService.getUserById(event.getInitiator())));
+      if(event.getEventDate().isBefore(LocalDateTime.now())){
+          dtoToReturn.setNumpberOfComments(utilCommentService.countOfCommentsforEvent(id));
+      }
         return dtoToReturn;
     }
 
@@ -295,6 +304,10 @@ public class EventServiceImpl implements EventService {
         dtoToReturn.setConfirmedRequests(utilRequestService.getCountOfApproveRequest(event.getId()));
         log.debug("Getting initiator user dto from user service");
         dtoToReturn.setInitiator(UserMapper.fromUserDtoToShort(userService.getUserById(event.getInitiator())));
+        if(event.getEventDate().isBefore(LocalDateTime.now())) {
+            log.debug("Getting count of comments ");
+            dtoToReturn.setNumberOfcomments(utilCommentService.countOfCommentsforEvent(event.getId()));
+        }
         return dtoToReturn;
     }
 

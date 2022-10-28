@@ -1,6 +1,7 @@
 package explorewithme.ewm.events.repository;
 
 import explorewithme.ewm.events.model.Event;
+import explorewithme.ewm.search.SearchCriteria;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;

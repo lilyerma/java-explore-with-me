@@ -5,8 +5,10 @@ import explorewithme.ewm.compilation.dto.CompilationDto;
 import explorewithme.ewm.compilation.dto.NewCompilationDto;
 import explorewithme.ewm.events.admin.AdminUpdateEventRequest;
 import explorewithme.ewm.events.dto.CategoryDto;
+import explorewithme.ewm.comments.dto.CommentDto;
 import explorewithme.ewm.events.dto.EventFullDto;
 import explorewithme.ewm.events.dto.NewCategoryDto;
+import explorewithme.ewm.comments.service.CommentService;
 import explorewithme.ewm.events.service.EventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ public class EventsControllerAdmin {
 
     private final EventService eventService;
     private final CompilationService compilationService;
+    private  final CommentService commentService;
 
 
 

@@ -4,6 +4,7 @@ import explorewithme.ewm.events.admin.UpdateEventRequest;
 import explorewithme.ewm.events.dto.EventFullDto;
 import explorewithme.ewm.events.dto.EventShortDto;
 import explorewithme.ewm.events.dto.NewEventDto;
+import explorewithme.ewm.comments.service.CommentService;
 import explorewithme.ewm.events.service.EventService;
 import explorewithme.ewm.requests.dto.ParticipationRequestDto;
 import explorewithme.ewm.requests.services.RequestService;
@@ -25,6 +26,7 @@ public class EventsControllerPrivate {
     private final EventService eventService;
     private final RequestService requestService;
 
+    private final CommentService commentService;
 
 
     @GetMapping("/{userId}/events")

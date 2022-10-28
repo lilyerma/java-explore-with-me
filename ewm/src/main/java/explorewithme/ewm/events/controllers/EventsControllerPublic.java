@@ -1,9 +1,11 @@
 package explorewithme.ewm.events.controllers;
 
+import explorewithme.ewm.comments.dto.CommentDtoForLists;
 import explorewithme.ewm.compilation.service.CompilationService;
 import explorewithme.ewm.compilation.dto.CompilationDto;
 import explorewithme.ewm.events.dto.*;
-import explorewithme.ewm.events.repository.FilterSort;
+import explorewithme.ewm.search.FilterSort;
+import explorewithme.ewm.comments.service.CommentService;
 import explorewithme.ewm.events.service.EventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,7 @@ public class EventsControllerPublic {
 
     private final EventService eventService;
     private final CompilationService compilationService;
+    private final CommentService commentService;
 
     @GetMapping("/events")
     public List<EventShortDto> getEvents(@RequestParam(name = "text", required = false) String text,
@@ -94,6 +97,15 @@ public class EventsControllerPublic {
         log.debug("Get request to public Api for compilation with id: " + compId);
         return compilationService.getComilationById(compId);
     }
+
+    @GetMapping("/events/{eventId}/comments")
+    public List<CommentDtoForLists> getCommentsForPastEvents(@PathVariable long eventId)
+            throws RuntimeException {
+
+        log.debug("Get comments request from public api by event: " + eventId);
+        return commentService.getCommentsForPastEvent(eventId);
+    }
+
 
 
     // Method to send hits and uris
