@@ -2,15 +2,16 @@ package explorewithme.ewm.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-
-@RestControllerAdvice
 @Slf4j
+@ControllerAdvice
+
 public class ErrorHandler {
 
     @ExceptionHandler(ArgumentException.class)
@@ -30,6 +31,7 @@ public class ErrorHandler {
 
     // 404 — для всех ситуаций, если искомый объект не найден
     @ExceptionHandler(NotFoundException.class)
+    @ResponseStatus(code = HttpStatus.NOT_FOUND)
     public Error handleNotFoundException(NotFoundException exception) {
         log.debug("The required object was not found.");
         return new Error(exception.getMessage(),

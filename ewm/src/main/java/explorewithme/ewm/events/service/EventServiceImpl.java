@@ -25,6 +25,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -49,16 +50,16 @@ public class EventServiceImpl implements EventService, CategoryService {
 
 
     @Override
-    public List<EventShortDto> getEvents(String text, long[] categories, String startStr, String endStr, boolean onlyAvailable,
+    public List<EventShortDto> getEvents(String text, long[] categories, Boolean paid, String startStr, String endStr, boolean onlyAvailable,
                                          FilterSort sort, int from, int size) {
 
         LocalDateTime start = LocalDateTime.now();
         LocalDateTime end = null;
         if(startStr != null) {
-            start = LocalDateTime.parse(startStr);
+            start = LocalDateTime.parse(startStr,DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         }
         if(endStr != null){
-            end = LocalDateTime.parse(endStr);
+            end = LocalDateTime.parse(endStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             if (end.isBefore(start)){
                 log.debug("Time range end should be after start, specify earlier date of the start." +
                         " Default start is " + LocalDateTime.now());
@@ -76,12 +77,12 @@ public class EventServiceImpl implements EventService, CategoryService {
 
 
         List<SearchCriteria> filters = new ArrayList<>();
-        if (text != null){
+        if (text != null && !text.equals(0)){
             log.debug("Building search criteria for text");
             SearchCriteria filterByText = SearchCriteria.builder()
                     .key("") // keys are preset in the Specification annotation, description, title
                     .operation(SearchOperation.LIKE)
-                    .value(text.toString())
+                    .value(text.toString().toLowerCase())
                     .build();
             filters.add(filterByText);
         }
@@ -122,6 +123,17 @@ public class EventServiceImpl implements EventService, CategoryService {
             filters.add(filterByEnd);
         }
 
+        if (paid != null) {
+            log.debug("Building search criteria for paid");
+            SearchCriteria filterByEnd = SearchCriteria.builder()
+                    .key("paid")
+                    .operation(SearchOperation.EQUAL)
+                    .value(paid)
+                    .build();
+            filters.add(filterByEnd);
+        }
+
+
         log.debug("Getting specification from list of search criteria");
 
         EventSpecifications eventSpecification = new EventSpecifications();
@@ -130,11 +142,16 @@ public class EventServiceImpl implements EventService, CategoryService {
                         searchCriterion.getValue(), searchCriterion.getType()))
                 .forEach(eventSpecification::add);
 
-        //   Specification toApply = eventSpecifications.getSpecificationFromFilters(filters);
-
         log.debug("Asking repo for Page of events according to search");
+
+
+        if(onlyAvailable) {
+            return eventRepository.findAll(eventSpecification, pageable).getContent().stream()
+                    .filter(this::isAvailable)
+                    .map(this::getEventByEventShort)
+                    .collect(Collectors.toList());
+        }
         return eventRepository.findAll(eventSpecification, pageable).getContent().stream()
-                   .filter(this::isAvailable)
                 .map(this::getEventByEventShort)
                 .collect(Collectors.toList());
     }
@@ -223,10 +240,10 @@ public class EventServiceImpl implements EventService, CategoryService {
         LocalDateTime start = LocalDateTime.now();
         LocalDateTime end = null;
         if (startStr != null) {
-            start = LocalDateTime.parse(startStr);
+            start = LocalDateTime.parse(startStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         }
         if (endStr != null) {
-            end = LocalDateTime.parse(endStr);
+            end = LocalDateTime.parse(endStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
             if (end.isBefore(start)){
                 log.debug("Time range end should be after start, specify earlier date of the start." +
                         " Default start is " + LocalDateTime.now());
@@ -480,14 +497,6 @@ public class EventServiceImpl implements EventService, CategoryService {
         }
         return event.getParticipantLimit();
     }
-
-//        private static String getListFromArray(long[] ids) {
-//        List<String> list = new ArrayList<>();
-//        for (long i : ids){
-//            list.add(Long.valueOf(i));
-//        }
-//        return list;
-//    }
 
     @Override
     public void checkEventId(long id) {

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category,Long> {
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("update Category c set c.name = ?1 where c.id = ?2")
     int updateCategory(String name, long id);
 

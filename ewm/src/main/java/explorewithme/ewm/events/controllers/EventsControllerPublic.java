@@ -52,6 +52,8 @@ public class EventsControllerPublic {
                                              @Parameter(description = "Text to search, optional")String text,
                                          @RequestParam(name = "categories", required = false)
                                             @Parameter(description = "Lists of the categories, optional")long[] categories,
+                                         @RequestParam(name = "paid", required = false)
+                                            @Parameter(description = "Filter by paid events") Boolean paid,
                                          @RequestParam(name = "rangeStart", required = false)
                                              @Parameter(description = "Start of the search period for the event")String start,
                                          @RequestParam(name = "rangeEnd", required = false)
@@ -75,7 +77,7 @@ public class EventsControllerPublic {
 
         sendStats(request);
 
-        return eventService.getEvents(text,categories,start,end,onlyAvailable, filterSort,from,size);
+        return eventService.getEvents(text,categories,paid, start,end,onlyAvailable, filterSort,from,size);
     }
 
     @Operation(summary = "Public endpoint to get event by id")

@@ -17,6 +17,8 @@ import java.util.List;
 @Transactional
 public interface EventRepository extends JpaRepository<Event,Long>, JpaSpecificationExecutor<Event> {
 
+
+
     @Query
     Page<Event> findEventsByInitiator(long userId, Pageable pageable);
 

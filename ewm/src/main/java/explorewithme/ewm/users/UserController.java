@@ -33,11 +33,17 @@ public class UserController {
         userService.delete(userId);
     }
 
-    // Метод по получению всех пользователей
-    @Operation(summary = "Get list of users")
+//    // Метод по получению всех пользователей
+//    @Operation(summary = "Get list of users")
+//    @GetMapping
+//    public List<UserDto> getUsers() throws RuntimeException {
+//        return userService.getUsers();
+//    }
+
+    @Operation(summary = "Get list of users by ids")
     @GetMapping
-    public List<UserDto> getUsers() throws RuntimeException {
-        return userService.getUsers();
+    public List<UserDto> getUsers(@RequestParam (name = "ids") Long[] userIds) throws RuntimeException {
+        return userService.getUsersByids(userIds);
     }
 
 }

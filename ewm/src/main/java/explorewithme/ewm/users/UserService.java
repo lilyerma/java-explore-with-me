@@ -21,4 +21,6 @@ public interface UserService {
     List<UserDto> getUsers();
 
     UserDto getUserById(long id);
+
+    List<UserDto> getUsersByids(Long[] userIds);
 }

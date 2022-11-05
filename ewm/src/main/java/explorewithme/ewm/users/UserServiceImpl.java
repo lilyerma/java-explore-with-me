@@ -8,10 +8,13 @@ import explorewithme.ewm.users.model.User;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -62,9 +65,11 @@ public class UserServiceImpl implements UserService {
         log.debug("saving updated user");
         User userToReturn = userRepository.save(existUser);
         return UserMapper.toUserDto(userToReturn);
+
     }
-    @Transactional
     @Override
+    @Transactional
+    @Modifying(clearAutomatically = true)
     public void delete(long id) {
         checkId(id);
         log.debug("Asking to delete user");
@@ -89,6 +94,18 @@ public class UserServiceImpl implements UserService {
             log.debug("user with id "+ id + " not found");
             throw new NotFoundException("user with id "+ id + " not found");
         }
+    }
+
+    @Override
+    public List<UserDto> getUsersByids(Long[] userIds) {
+        if (userIds==null){
+            getUsers();
+        }
+        List<Long> ids = new ArrayList<>();
+        Collections.addAll(ids, userIds);
+        return  userRepository.findByIdIn(ids).stream()
+                .map(UserMapper::toUserDto)
+                .collect(Collectors.toList());
     }
 
 

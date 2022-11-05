@@ -13,7 +13,7 @@ public interface EventService {
 
     void checkEventId(long id);
 
-    List<EventShortDto> getEvents(String text, long[] categories, String startStr, String endStr, boolean onlyAvailable,
+    List<EventShortDto> getEvents(String text, long[] categories, Boolean paid, String startStr, String endStr, boolean onlyAvailable,
                                   FilterSort sort, int from, int size);
 
     EventFullDto getEventById(long id);
