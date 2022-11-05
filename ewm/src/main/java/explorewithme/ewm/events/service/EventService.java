@@ -13,16 +13,13 @@ public interface EventService {
 
     void checkEventId(long id);
 
-    List<EventShortDto> getEvents(String text, long[] categories, String startStr, String endStr, boolean onlyAvailable,
+    List<EventShortDto> getEvents(String text, long[] categories, Boolean paid, String startStr, String endStr, boolean onlyAvailable,
                                   FilterSort sort, int from, int size);
 
     EventFullDto getEventById(long id);
 
     EventShortDto getEventByIdShort(long id);
 
-    List<CategoryDto> getCategories(int from, int size);
-
-    CategoryDto getCategoryById(int catId);
 
     List<EventShortDto> getEventsByUser(long userId, int from, int size);
 
@@ -35,14 +32,7 @@ public interface EventService {
 
     EventFullDto rejectEvent(long eventId);
 
-    CategoryDto updateCategory(CategoryDto categoryDto);
-
-    CategoryDto createCategory(NewCategoryDto categoryDto);
-
-    void deleteCategory(long catId);
-
     EventFullDto updateEvent(long userId, UpdateEventRequest updateEventRequest);
-
 
     EventFullDto getEventsById(long userId, long eventId);
 

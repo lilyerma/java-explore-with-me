@@ -19,7 +19,7 @@ public class UpdateEventRequest {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     LocalDateTime eventDate;
     long eventId;
-    boolean paid;
+    Boolean paid;
     int participantLimit;
     String title;
 

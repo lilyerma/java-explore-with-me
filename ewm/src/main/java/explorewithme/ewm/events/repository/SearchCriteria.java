@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import net.bytebuddy.utility.JavaType;
 
 import java.util.List;
 
@@ -13,9 +14,9 @@ import java.util.List;
 @Builder
 public class SearchCriteria {
     private String key;
-    private SearchOperation operator;
-    private String value;
-    private List<String> values;
+    private SearchOperation operation;
+    private Object value;
+    private String type;
 
 }
 

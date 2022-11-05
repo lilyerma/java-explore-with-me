@@ -1,9 +1,6 @@
 package explorewithme.ewm.compilation.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -11,7 +8,8 @@ import java.io.Serializable;
 @Entity
 @Table(name = "compilation_events", schema = "public")
 @ToString
-@Data
+@Setter
+@Getter
 @AllArgsConstructor
 @NoArgsConstructor
 @IdClass(CompilationEvent.class)

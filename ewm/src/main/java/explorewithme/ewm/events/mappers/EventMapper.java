@@ -40,7 +40,7 @@ public class EventMapper {
             if (updateEventRequest.getCategory() != 0) {existingEvent.setAnnotation(updateEventRequest.getAnnotation());}
             if (updateEventRequest.getDescription() !=null) {existingEvent.setDescription(updateEventRequest.getDescription());}
             if (updateEventRequest.getEventDate() !=null) {existingEvent.setEventDate(updateEventRequest.getEventDate());}
-            if (updateEventRequest.isPaid()) { existingEvent.setPaid(true);}
+            if (updateEventRequest.getPaid() !=null) { existingEvent.setPaid(updateEventRequest.getPaid());}
             if (updateEventRequest.getParticipantLimit()!=existingEvent.getParticipantLimit())
             {existingEvent.setParticipantLimit(updateEventRequest.getParticipantLimit());}
             if (updateEventRequest.getTitle()!=null){existingEvent.setTitle(updateEventRequest.getTitle());}

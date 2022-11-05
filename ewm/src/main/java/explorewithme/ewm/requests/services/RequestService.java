@@ -19,5 +19,4 @@ public interface RequestService {
 
     ParticipationRequestDto rejectRequest(long userId, long eventId, long reqId);
 
- //   int getCountOfApproveRequest(long eventId);
 }

@@ -2,8 +2,11 @@ package explorewithme.ewm.events.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import explorewithme.ewm.events.model.Location;
 import explorewithme.ewm.events.validation.ValidDates;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,6 +18,7 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Schema(description = "Event Dto for posting")
 public class NewEventDto {
 
     @Size(min=20, max = 7000)
