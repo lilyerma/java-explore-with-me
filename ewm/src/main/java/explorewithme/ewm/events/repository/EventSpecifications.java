@@ -114,7 +114,6 @@ public class EventSpecifications implements Specification<Event> {
         return Arrays.asList(string);
     }
 
-
 }
 
 

@@ -24,4 +24,8 @@ public interface RequestRepository extends JpaRepository<Request,Long> {
     @Query
     List<Request> getRequestsByEvent(long eventId);
 
+    @Query(nativeQuery = true, value = "select count(request_id) from requests where event_id = ? " +
+            "and requestor_id = ? and status='CONFIRMED'")
+    int getRequestsByEventAndAndRequesterAndStatus(long eventId, long requestor, Status status);
+
 }

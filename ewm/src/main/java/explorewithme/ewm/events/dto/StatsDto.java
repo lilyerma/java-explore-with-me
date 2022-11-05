@@ -26,5 +26,4 @@ public class StatsDto {
     @JsonSerialize
     String timestamp;
 
-
 }

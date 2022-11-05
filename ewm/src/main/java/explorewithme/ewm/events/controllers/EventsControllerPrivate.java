@@ -26,7 +26,7 @@ import java.util.List;
 @RequestMapping(path = "/users")
 @RequiredArgsConstructor
 @Validated
-@Tag(name = "Controleer for authenticated users", description = "Includes management for events, categories, requests and comments")
+@Tag(name = "Controler for authenticated users", description = "Includes management for events, categories, requests and comments")
 public class EventsControllerPrivate {
 
     private final EventService eventService;

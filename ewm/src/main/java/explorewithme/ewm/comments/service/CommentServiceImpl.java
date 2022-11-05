@@ -8,6 +8,7 @@ import explorewithme.ewm.comments.model.Comment;
 import explorewithme.ewm.comments.repository.CommentRepository;
 import explorewithme.ewm.comments.repository.CommentSpecifications;
 import explorewithme.ewm.events.dto.*;
+import explorewithme.ewm.events.repository.EventSpecifications;
 import explorewithme.ewm.events.service.EventService;
 import explorewithme.ewm.exception.ArgumentException;
 import explorewithme.ewm.exception.ConflictException;
@@ -43,7 +44,6 @@ public class CommentServiceImpl implements CommentService {
     private final UtilRequestService utilRequestService;
     private final CommentRepository repository;
 
-    private final CommentSpecifications commentSpecifications;
 
     @Override
     @Transactional
@@ -146,7 +146,7 @@ public class CommentServiceImpl implements CommentService {
             log.debug("Building search criteria for text");
             SearchCriteria filterByText = SearchCriteria.builder()
                     .key("") // keys are preset to search text in comments
-                    .operator(SearchOperation.LIKE)
+                    .operation(SearchOperation.LIKE)
                     .value(text)
                     .build();
             filters.add(filterByText);
@@ -156,8 +156,9 @@ public class CommentServiceImpl implements CommentService {
             log.debug("Building search criteria for event state");
             SearchCriteria filterByStates = SearchCriteria.builder()
                     .key("state")
-                    .operator(SearchOperation.IN)
-                    .values(List.of(states))
+                    .operation(SearchOperation.IN)
+                    .value(states)
+                    .type("List<String>")
                     .build();
             filters.add(filterByStates);
         }
@@ -166,7 +167,7 @@ public class CommentServiceImpl implements CommentService {
         log.debug("Building search criteria for end");
         SearchCriteria filterByEnd = SearchCriteria.builder()
                 .key("created")
-                .operator(SearchOperation.LESS_THAN)
+                .operation(SearchOperation.LESS_THAN)
                 .value(end.toString())
                 .build();
         filters.add(filterByEnd);
@@ -175,18 +176,24 @@ public class CommentServiceImpl implements CommentService {
             log.debug("Building search criteria for end");
             SearchCriteria filterByStart = SearchCriteria.builder()
                     .key("created")
-                    .operator(SearchOperation.LESS_THAN)
+                    .operation(SearchOperation.LESS_THAN)
                     .value(start.toString())
                     .build();
             filters.add(filterByEnd);
         }
 
-        log.debug("Getting specification from list of search criteria");
-        Specification toApply = commentSpecifications.getSpecificationFromFilters(filters);
+        CommentSpecifications commentSpecification = new CommentSpecifications();
+        filters.stream()
+                .map(searchCriterion -> new SearchCriteria(searchCriterion.getKey(), searchCriterion.getOperation(),
+                        searchCriterion.getValue(), searchCriterion.getType()))
+                .forEach(commentSpecification::add);
+
         log.debug("Asking repo for Page of events according to search");
-        return  ((List<Comment>) repository.findAll(toApply, pageable).getContent()).stream()
-                .map(Comment -> addEventsAndUsers(Comment))
-                .collect(Collectors.toList());
+
+            return repository.findAll(commentSpecification, pageable).getContent().stream()
+                    .map(Comment -> addEventsAndUsers(Comment))
+                    .collect(Collectors.toList());
+
     }
 
     @Override

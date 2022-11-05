@@ -79,11 +79,11 @@ public class EventServiceImpl implements EventService, CategoryService {
             sortColumn = "views";
         }
         log.debug("Parsed default filters: start" + start + ", end " + end + ", sort " + sortColumn);
-        Pageable pageable = new OffsetBasedPageRequest(size, from, Sort.by(Sort.Direction.ASC, sortColumn));
+        Pageable pageable = new OffsetBasedPageRequest(size, from, Sort.by(Sort.Direction.DESC, sortColumn));
 
 
         List<SearchCriteria> filters = new ArrayList<>();
-        if (text != null && !text.equals(0)){
+        if (text != null){
             log.debug("Building search criteria for text");
             SearchCriteria filterByText = SearchCriteria.builder()
                     .key("") // keys are preset in the Specification annotation, description, title

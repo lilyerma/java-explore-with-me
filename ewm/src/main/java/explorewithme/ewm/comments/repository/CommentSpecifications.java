@@ -1,6 +1,8 @@
 package explorewithme.ewm.comments.repository;
 
 import explorewithme.ewm.comments.model.Comment;
+import explorewithme.ewm.events.model.Event;
+import explorewithme.ewm.events.repository.SearchOperation;
 import explorewithme.ewm.search.SearchCriteria;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;
@@ -13,6 +15,7 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
@@ -21,89 +24,15 @@ import java.util.List;
 public class CommentSpecifications  implements Specification<Comment> {
 
 
-        public Specification<Comment> getSpecificationFromFilters(List<SearchCriteria> filter) {
-            Specification<Comment> specification = createSpecification(filter.get(0));
-            for (SearchCriteria input : filter) {
-                specification.and(createSpecification(input));
-            }
-            return specification;
-        }
+    private List<SearchCriteria> list;
 
-        public Specification<Comment> createSpecification(SearchCriteria input) {
-            switch (input.getOperator()){
+    public CommentSpecifications() {
+        this.list = new ArrayList<>();
+    }
 
-                case EQUAL:
-                    return (root, query, criteriaBuilder) ->
-                            criteriaBuilder.equal(root.get(input.getKey()),
-                                    castToRequiredType(root.get(input.getKey()).getJavaType(),
-                                            input.getValue()));
-
-                case NOT_EQUAL:
-                    return (root, query, criteriaBuilder) ->
-                            criteriaBuilder.notEqual(root.get(input.getKey()),
-                                    castToRequiredType(root.get(input.getKey()).getJavaType(),
-                                            input.getValue()));
-                //Only for LocalDateTime
-                case GREATER_THAN:
-                    log.debug("buiding specification for greater than for LocalDateTime");
-                    Specification<Comment> specification = (root, query, criteriaBuilder) ->
-                            criteriaBuilder.greaterThan(root.get("created"), LocalDateTime.parse(input.getValue()));
-                    return specification;
-                //Only for LocalDateTime
-                case LESS_THAN:
-                    log.debug("buiding specification for less than for LocalDateTime");
-                    return (root, query, criteriaBuilder) ->
-                            criteriaBuilder.lessThan(root.get("created"), LocalDateTime.parse(input.getValue()));
-                //Only for text
-                case LIKE:
-                    log.debug("buiding specification for search by text in annotation, description and title");
-                    return (root, query, criteriaBuilder) -> criteriaBuilder.or(
-                            criteriaBuilder.like(criteriaBuilder.lower(root.get("text")), "%" + input.getValue() + "%"));
-                case IN:
-                    log.debug("buiding specification to search in lists of Strings, Enums and long");
-                    return (root, query, criteriaBuilder) ->
-                            criteriaBuilder.in(root.get(input.getKey()))
-                                    .value(castToRequiredType(
-                                            root.get(input.getKey()).getJavaType(),
-                                            input.getValues()));
-
-                default:
-                    throw new RuntimeException("Operation not supported yet");
-            }
-        }
-
-
-        private static Object castToRequiredType(Class fieldType, String value) {
-            log.debug("Casting class for value parameters for specification builder");
-            if(fieldType.isAssignableFrom(Long.class)) {
-                log.debug("Casting class - Long");
-                return Long.valueOf(value);
-            } else if(fieldType.isAssignableFrom(LocalDateTime.class)) {
-                log.debug("Casting class - LocalDateTime");
-                return LocalDateTime.parse(value);
-            } else if(Enum.class.isAssignableFrom(fieldType)) {
-                log.debug("Casting class - Enum");
-                return Enum.valueOf(fieldType, value);
-            }
-            return null;
-        }
-
-        private Object castToRequiredType(Class fieldType, List<String> value) {
-            List<Object> lists = new ArrayList<>();
-            for (String s : value) {
-                lists.add(castToRequiredType(fieldType, s));
-            }
-            return lists;
-        }
-
-        private static String getContainsLikePattern(String searchTerm) {
-            if (searchTerm == null || searchTerm.isEmpty()) {
-                return "%";
-            }
-            else {
-                return "%" + searchTerm.toLowerCase() + "%";
-            }
-        }
+    public void add(SearchCriteria criteria) {
+        list.add(criteria);
+    }
 
     @Override
     public Specification<Comment> and(Specification<Comment> other) {
@@ -115,9 +44,81 @@ public class CommentSpecifications  implements Specification<Comment> {
         return Specification.super.or(other);
     }
 
+    //This method requires work to accomodate arbitrary parameter types (Objects)
     @Override
-    public Predicate toPredicate(Root<Comment> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
-        return null;
+    public Predicate toPredicate(Root<Comment> root, CriteriaQuery<?> query, CriteriaBuilder builder) {
+
+        //create a new predicate list
+        List<Predicate> predicates = new ArrayList<>();
+
+        //add criteria to predicate
+        for (SearchCriteria criteria : list) {
+            if (criteria.getOperation().equals(SearchOperation.GREATER_THAN)) { // Hardcoded for LocalDateTime for brevity
+                predicates.add(builder.greaterThan(
+                        root.get("eventDate"), LocalDateTime.parse(criteria.getValue().toString())));
+            } else if (criteria.getOperation().equals(SearchOperation.LESS_THAN)) {
+                predicates.add(builder.lessThan(  // Hardcoded for LocalDateTime for brevity
+                        root.get("eventDate"), LocalDateTime.parse(criteria.getValue().toString())));
+            } else if (criteria.getOperation().equals(SearchOperation.GREATER_THAN_EQUAL)) {
+                predicates.add(builder.greaterThanOrEqualTo(
+                        root.get(criteria.getKey()), criteria.getValue().toString()));
+            } else if (criteria.getOperation().equals(SearchOperation.LESS_THAN_EQUAL)) {
+                predicates.add(builder.lessThanOrEqualTo(
+                        root.get(criteria.getKey()), criteria.getValue().toString()));
+            } else if (criteria.getOperation().equals(SearchOperation.NOT_EQUAL)) {
+                predicates.add(builder.notEqual(
+                        root.get(criteria.getKey()), criteria.getValue()));
+            } else if (criteria.getOperation().equals(SearchOperation.EQUAL)) {
+                predicates.add(builder.equal(
+                        root.get(criteria.getKey()), criteria.getValue()));
+            } else if (criteria.getOperation().equals(SearchOperation.LIKE)) {
+                predicates.add(builder.like(builder.lower(root.get("text")), "%"
+                        + String.valueOf(criteria.getValue()) + "%"));
+            } else if (criteria.getOperation().equals(SearchOperation.IN)) {
+                List<Predicate> toStore = new ArrayList<>();
+                if (criteria.getType() == "List<Long>") {
+                    List<Long> list = castTypeL(criteria.getValue().toString());
+                    if (list.size() == 1) {
+                        predicates.add(builder.equal(root.get(criteria.getKey()), list.get(0)));
+                    } else {
+                        for (Long id : list) {
+                            toStore.add(builder.equal(root.get(criteria.getKey()), id));
+                        }
+                        predicates.add(builder.or(toStore.toArray(new Predicate[0])));
+                    }
+                } else if (criteria.getType() == "List<String") {
+                    List<String> list = (List<String>) castTypeS(criteria.getValue().toString());
+                    if (list.size() == 1) {
+                        predicates.add(builder.equal(root.get(criteria.getKey()), list.get(0)));
+                    } else {
+                        for (String str : list) {
+                            toStore.add(builder.equal(root.get(criteria.getKey()), str));
+                        }
+                        predicates.add(builder.or(toStore.toArray(new Predicate[0])));
+                    }
+                }
+            }
+        }
+
+        return builder.and(predicates.toArray(new Predicate[0]));
     }
+
+    //Methods to cast lists to the correct type
+
+    private static List<Long> castTypeL(String value) {
+        String[] string = (value.substring(1, value.length() - 1)).split(",");
+        List<Long> longList = new ArrayList<>();
+        for (String element : string) {
+            longList.add(Long.parseLong(element));
+        }
+        return longList;
+    }
+
+    private static List<String> castTypeS(String value) {
+        String[] string = value.split(",");
+        return Arrays.asList(string);
+    }
+
+
 }
 

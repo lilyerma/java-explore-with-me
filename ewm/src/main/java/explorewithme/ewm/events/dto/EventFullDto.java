@@ -53,5 +53,6 @@ public class EventFullDto {
     String title;
     @Schema(description = "Number of views")
     int views;
+    @Schema(description = "Number of comments")
     int numberOfcomments;
 }
