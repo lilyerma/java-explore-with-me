@@ -86,6 +86,16 @@
             <artifactId>hibernate-types-52</artifactId>
             <version>2.19.2</version>
         </dependency>
+    <dependency>
+        <groupId>io.swagger.core.v3</groupId>
+        <artifactId>swagger-annotations</artifactId>
+        <version>2.2.4</version>
+    </dependency>
+    <dependency>
+        <groupId>org.springdoc</groupId>
+        <artifactId>springdoc-openapi-ui</artifactId>
+        <version>1.6.12</version>
+    </dependency>
 </dependencies>
     <build>
         <plugins>

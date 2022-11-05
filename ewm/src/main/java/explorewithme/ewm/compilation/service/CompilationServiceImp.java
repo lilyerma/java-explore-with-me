@@ -14,6 +14,7 @@ import explorewithme.ewm.exception.NotFoundException;
 import explorewithme.ewm.util.OffsetBasedPageRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -38,7 +39,7 @@ public class CompilationServiceImp implements CompilationService {
     @Transactional
     public List<CompilationDto> getComilations(int from, int size, boolean pinned) {
         Pageable pageable = new OffsetBasedPageRequest(size, from, Sort.by(Sort.DEFAULT_DIRECTION, "id"));
-        List<Compilation> compilations = repository.getCompilationsByPinnedEquals(pinned, pageable);
+        Page<Compilation> compilations = repository.getCompilationsByPinnedEquals(pinned, pageable);
         log.debug("Get compilations from repository: pinned " + pinned + ", from " + from + " size " + size);
         return compilations.stream()
                 .map(this::addEventsShort)
@@ -56,21 +57,18 @@ public class CompilationServiceImp implements CompilationService {
     @Transactional
     public CompilationDto create(NewCompilationDto newCompilationDto) {
         Compilation compilation = CompilationMapper.fromNewCompilationDto(newCompilationDto);
-        log.debug("Asking Compilation repo to save compilation");
         Compilation compSaved = repository.save(compilation);
         log.debug("Asking EventCompilation repo to save comilation and events in for-cycle");
             for (int i = 0; i < newCompilationDto.getEvents().size(); i++) {
                 CompilationEvent compEvent = new CompilationEvent(compSaved.getId(),newCompilationDto.getEvents().get(i));
                 compEventRepository.save(compEvent);
             }
-        log.debug("Calling method to add events");
             CompilationDto toReturn = addEventsShort(compSaved);
         return toReturn;
     }
 
     private CompilationDto addEventsShort(Compilation compilation){
 
-        log.debug("Getting id from comilation, asking EventService to add short dto for events");
         List<EventShortDto> events = compEventRepository.getEventsByIdEquals(compilation.getId()).stream()
                 .map(id -> eventService.getEventByIdShort(id))
                 .collect(toList());

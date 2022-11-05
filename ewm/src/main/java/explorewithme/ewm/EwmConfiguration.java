@@ -15,7 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 @Configuration
-public class EwaConfiguration {
+public class EwmConfiguration {
 
     private static final String dateFormat = "yyyy-MM-dd";
     private static final String dateTimeFormat = "yyyy-MM-dd HH:mm:ss";

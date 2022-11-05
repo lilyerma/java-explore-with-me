@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
@@ -23,10 +25,16 @@ public class Event {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
     @Column
+    @NotEmpty
+    @NotBlank
     private String title;
     @Column
+    @NotEmpty
+    @NotBlank
     private String annotation;
     @Column
+    @NotEmpty
+    @NotBlank
     private String description;
     @Column (name = "initiator_id" )
     private long initiator;
@@ -37,6 +45,7 @@ public class Event {
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private LocalDateTime created;
     @Column (name = "event_date")
+    @NotNull
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private LocalDateTime eventDate;
     @Column (name = "published_at")

@@ -20,7 +20,7 @@ public class CompilationMapper {
         CompilationDto compilationDto = new CompilationDto();
         compilationDto.setId(compilation.getId());
         compilationDto.setPinned(compilation.isPinned());
-        compilationDto.setTitle(compilationDto.getTitle());
+        compilationDto.setTitle(compilation.getTitle());
         return compilationDto;
     }
 

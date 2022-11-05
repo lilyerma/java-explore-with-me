@@ -6,6 +6,7 @@ import explorewithme.ewm.requests.Status;
 import lombok.*;
 
 import javax.persistence.*;
+import javax.validation.constraints.Positive;
 import java.time.LocalDateTime;
 
 @Entity
@@ -21,9 +22,11 @@ public class Request {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    @Positive
     @Column(name = "requestor_id")
     private long requester;
 
+    @Positive
     @Column (name = "event_id")
     private long event;
 

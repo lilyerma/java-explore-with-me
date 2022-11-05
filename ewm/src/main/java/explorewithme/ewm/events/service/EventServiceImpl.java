@@ -22,12 +22,11 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,7 +37,7 @@ import static explorewithme.ewm.events.repository.FilterSort.VIEWS;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
-public class EventServiceImpl implements EventService {
+public class EventServiceImpl implements EventService, CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final EventRepository eventRepository;
@@ -47,8 +46,6 @@ public class EventServiceImpl implements EventService {
     private final UtilRequestService utilRequestService;
 
     private final UserService userService;
-    private final EventSpecifications eventSpecifications;
-
 
 
     @Override
@@ -77,21 +74,23 @@ public class EventServiceImpl implements EventService {
         log.debug("Parsed default filters: start" + start + ", end " + end + ", sort " + sortColumn);
         Pageable pageable = new OffsetBasedPageRequest(size, from, Sort.by(Sort.Direction.ASC, sortColumn));
 
+
         List<SearchCriteria> filters = new ArrayList<>();
         if (text != null){
             log.debug("Building search criteria for text");
             SearchCriteria filterByText = SearchCriteria.builder()
-                    .key("") // keys are preset in the Specification^ annotation, description, title
-                    .operator(SearchOperation.LIKE)
-                    .value(text)
+                    .key("") // keys are preset in the Specification annotation, description, title
+                    .operation(SearchOperation.LIKE)
+                    .value(text.toString())
                     .build();
             filters.add(filterByText);
         }
          log.debug("Building search criteria for event state preset as Published");
             SearchCriteria filterByStates = SearchCriteria.builder()
                     .key("state")
-                    .operator(SearchOperation.IN)
-                    .values(List.of("PUBLISHED"))
+                    .operation(SearchOperation.IN)
+                    .value("PUBLISHED")
+                    .type("List<String>")
                     .build();
             filters.add(filterByStates);
 
@@ -99,15 +98,16 @@ public class EventServiceImpl implements EventService {
             log.debug("Building search criteria for list of categories");
             SearchCriteria filterByCategory = SearchCriteria.builder()
                     .key("category")
-                    .operator(SearchOperation.IN)
-                    .values(getListFromArray(categories))
+                    .operation(SearchOperation.IN)
+                    .value(Arrays.toString(categories))
+                    .type("List<Long>")
                     .build();
             filters.add(filterByCategory);
         }
         log.debug("Building search criteria for start");
         SearchCriteria filterByStart = SearchCriteria.builder()
                 .key("eventDate")
-                .operator(SearchOperation.GREATER_THAN)
+                .operation(SearchOperation.GREATER_THAN)
                 .value(start.toString())
                 .build();
         filters.add(filterByStart);
@@ -116,17 +116,25 @@ public class EventServiceImpl implements EventService {
             log.debug("Building search criteria for end");
             SearchCriteria filterByEnd = SearchCriteria.builder()
                     .key("eventDate")
-                    .operator(SearchOperation.LESS_THAN)
+                    .operation(SearchOperation.LESS_THAN)
                     .value(end.toString())
                     .build();
             filters.add(filterByEnd);
         }
 
         log.debug("Getting specification from list of search criteria");
-        Specification toApply = eventSpecifications.getSpecificationFromFilters(filters);
+
+        EventSpecifications eventSpecification = new EventSpecifications();
+        filters.stream()
+                .map(searchCriterion -> new SearchCriteria(searchCriterion.getKey(), searchCriterion.getOperation(),
+                        searchCriterion.getValue(), searchCriterion.getType()))
+                .forEach(eventSpecification::add);
+
+        //   Specification toApply = eventSpecifications.getSpecificationFromFilters(filters);
+
         log.debug("Asking repo for Page of events according to search");
-        return ((List<Event>) eventRepository.findAll(toApply, pageable).getContent()).stream()
-                .filter(this::isAvailable)
+        return eventRepository.findAll(eventSpecification, pageable).getContent().stream()
+                   .filter(this::isAvailable)
                 .map(this::getEventByEventShort)
                 .collect(Collectors.toList());
     }
@@ -235,8 +243,9 @@ public class EventServiceImpl implements EventService {
             log.debug("Building search criteria for users");
             SearchCriteria filterByUsers = SearchCriteria.builder()
                     .key("initiator")
-                    .operator(SearchOperation.IN)
-                    .values(getListFromArray(users))
+                    .operation(SearchOperation.IN)
+                    .value(Arrays.toString(users))
+                    .type("List<Long>")
                     .build();
             filters.add(filterByUsers);
         }
@@ -244,8 +253,9 @@ public class EventServiceImpl implements EventService {
             log.debug("Building search criteria for event states");
             SearchCriteria filterByStates = SearchCriteria.builder()
                     .key("state")
-                    .operator(SearchOperation.IN)
-                    .values(List.of(states))
+                    .operation(SearchOperation.IN)
+                    .value(states)
+                    .type("List<String>")
                     .build();
             filters.add(filterByStates);
         }
@@ -253,15 +263,16 @@ public class EventServiceImpl implements EventService {
             log.debug("Building search criteria for event categories");
             SearchCriteria filterByCategory = SearchCriteria.builder()
                     .key("category")
-                    .operator(SearchOperation.IN)
-                    .values(getListFromArray(categories))
+                    .operation(SearchOperation.IN)
+                    .value(Arrays.toString(categories))
+                    .type("List<Long>")
                     .build();
             filters.add(filterByCategory);
         }
         log.debug("Building search criteria for startRange");
         SearchCriteria filterByStart = SearchCriteria.builder()
                 .key("eventDate")
-                .operator(SearchOperation.GREATER_THAN)
+                .operation(SearchOperation.GREATER_THAN)
                 .value(start.toString())
                 .build();
         filters.add(filterByStart);
@@ -270,17 +281,24 @@ public class EventServiceImpl implements EventService {
             log.debug("Building search criteria for endRange");
             SearchCriteria filterByEnd = SearchCriteria.builder()
                     .key("eventDate")
-                    .operator(SearchOperation.LESS_THAN)
+                    .operation(SearchOperation.LESS_THAN)
                     .value(end.toString())
                     .build();
             filters.add(filterByEnd);
         }
 
         log.debug("Getting specification from list of search criteria");
-        Specification toApply = eventSpecifications.getSpecificationFromFilters(filters);
+
+        EventSpecifications eventSpecification = new EventSpecifications();
+        filters.stream()
+                .map(searchCriterion -> new SearchCriteria(searchCriterion.getKey(), searchCriterion.getOperation(),
+                        searchCriterion.getValue(), searchCriterion.getType()))
+                .forEach(eventSpecification::add);
+
+     //   Specification toApply = eventSpecifications.getSpecificationFromFilters(filters);
 
         log.debug("Asking repo for Page of events according to search");
-        return ((List<Event>) eventRepository.findAll(toApply, pageable).getContent()).stream()
+        return   eventRepository.findAll(eventSpecification, pageable).getContent().stream()
                 .map(this::getEventByEventFull)
                 .collect(Collectors.toList());
     }
@@ -463,13 +481,13 @@ public class EventServiceImpl implements EventService {
         return event.getParticipantLimit();
     }
 
-        private static ArrayList<String> getListFromArray(long[] ids) {
-        ArrayList<String> list = new ArrayList<>();
-        for (long i : ids){
-            list.add(String.valueOf(i));
-        }
-        return list;
-    }
+//        private static String getListFromArray(long[] ids) {
+//        List<String> list = new ArrayList<>();
+//        for (long i : ids){
+//            list.add(Long.valueOf(i));
+//        }
+//        return list;
+//    }
 
     @Override
     public void checkEventId(long id) {
