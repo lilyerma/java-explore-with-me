@@ -78,7 +78,6 @@ public class Event {
         this.initiator = initiator;
         this.paid = false;
         this.participantLimit = 0;
-        this.requestModeration = true;
         this.state = State.PENDING;
     }
 }

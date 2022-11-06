@@ -31,6 +31,7 @@ public class EventMapper {
             );
             event.setLat(eventDto.getLocation().getLat());
             event.setLon(eventDto.getLocation().getLon());
+            event.setRequestModeration(eventDto.isRequestModeration());
             if (eventDto.getParticipantLimit() != 0) event.setParticipantLimit(eventDto.getParticipantLimit());
             eventDto.setRequestModeration(event.isRequestModeration());
             if (eventDto.isPaid()) {event.setPaid(true);}
