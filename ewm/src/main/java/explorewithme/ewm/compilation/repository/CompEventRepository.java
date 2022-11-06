@@ -25,7 +25,7 @@ public interface CompEventRepository extends JpaRepository<CompilationEvent, Lon
     CompilationEvent getCompilationEventByIdEqualsAndAndEventEquals(long compId, long eventId);
 
     @Query ("select event from CompilationEvent where id = ?1")
-    List<Integer> getEventsByIdEquals(long compId);
+    List<Long> getEventsByIdEquals(long compId);
 
 
 }

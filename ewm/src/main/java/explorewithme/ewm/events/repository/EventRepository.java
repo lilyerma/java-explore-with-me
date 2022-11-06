@@ -30,4 +30,7 @@ public interface EventRepository extends JpaRepository<Event,Long>, JpaSpecifica
     @Query(value = "update Event e set e.views = ?1 where e.id =?2")
     int updateEventViews(long views, long eventId);
 
+    @Query
+    List<Event> findEventsByIdIn(List<Long> eventIds);
+
 }

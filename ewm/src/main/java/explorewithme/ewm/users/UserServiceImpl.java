@@ -4,6 +4,7 @@ import explorewithme.ewm.exception.NotFoundException;
 import explorewithme.ewm.exception.ValidationException;
 import explorewithme.ewm.users.dto.NewUserRequest;
 import explorewithme.ewm.users.dto.UserDto;
+import explorewithme.ewm.users.dto.UserShortDto;
 import explorewithme.ewm.users.model.User;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,8 @@ import javax.persistence.EntityNotFoundException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Getter
@@ -106,6 +109,13 @@ public class UserServiceImpl implements UserService {
         return  userRepository.findByIdIn(ids).stream()
                 .map(UserMapper::toUserDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Map<Long, UserShortDto> getUsersByIds(List<Long> userIds) {
+        return userRepository.findByIdIn(userIds).stream()
+                .map(UserMapper::toUserShortDto)
+                .collect(Collectors.toMap(UserShortDto::getId, Function.identity()));
     }
 
 

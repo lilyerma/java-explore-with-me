@@ -1,14 +1,18 @@
 package explorewithme.ewm.events.mappers;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import explorewithme.ewm.events.admin.AdminUpdateEventRequest;
 import explorewithme.ewm.events.admin.UpdateEventRequest;
 import explorewithme.ewm.events.dto.EventFullDto;
+import explorewithme.ewm.events.dto.EventMiniDto;
 import explorewithme.ewm.events.dto.EventShortDto;
 import explorewithme.ewm.events.dto.NewEventDto;
 import explorewithme.ewm.events.model.Event;
 import explorewithme.ewm.events.model.Location;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
 
 @Component
 @Slf4j
@@ -91,6 +95,10 @@ public class EventMapper {
         eventShortDto.setPaid(event.isPaid());
         eventShortDto.setTitle(event.getTitle());
         return eventShortDto;
+    }
+
+    public static EventMiniDto fromEventToMiniDto (Event event){
+        return new EventMiniDto(event.getId(), event.getTitle(), event.getEventDate());
     }
 
 

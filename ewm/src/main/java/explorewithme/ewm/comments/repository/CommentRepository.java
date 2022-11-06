@@ -28,4 +28,8 @@ public interface CommentRepository extends JpaRepository<Comment,Long>, JpaSpeci
     @Query("update Comment c set c.state = ?1, c.moderation = ?2, c.published = ?4 where c.id =?3")
     int updateCommentStatus(State state, boolean moderation, long commentId, LocalDateTime date);
 
+    @Query
+    List<Comment> findCommentsByEventIn(List<Long> eventIds);
+
+
 }

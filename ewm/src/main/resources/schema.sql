@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS compilation_events (compilation_id bigint, event_id b
          REFERENCES events(event_id) ON DELETE CASCADE);
 
 CREATE TABLE IF NOT EXISTS comments (comment_id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, event_id bigint,
- text varchar (1000), created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,  moderation boolean,
+ text varchar (1000), created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP, state varchar, moderation boolean,
  published_at TIMESTAMP WITHOUT TIME ZONE, author bigint, CONSTRAINT author_fk FOREIGN KEY (author)
      REFERENCES users(user_id) ON DELETE CASCADE, CONSTRAINT event_fk FOREIGN KEY (event_id)
          REFERENCES events(event_id) ON DELETE CASCADE);

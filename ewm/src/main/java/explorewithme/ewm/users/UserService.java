@@ -2,9 +2,11 @@ package explorewithme.ewm.users;
 
 import explorewithme.ewm.users.dto.NewUserRequest;
 import explorewithme.ewm.users.dto.UserDto;
+import explorewithme.ewm.users.dto.UserShortDto;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 public interface UserService {
     @Transactional
@@ -23,4 +25,6 @@ public interface UserService {
     UserDto getUserById(long id);
 
     List<UserDto> getUsersByids(Long[] userIds);
+
+    Map<Long, UserShortDto> getUsersByIds(List<Long> userIds);
 }

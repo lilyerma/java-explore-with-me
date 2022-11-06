@@ -8,7 +8,6 @@ import explorewithme.ewm.comments.model.Comment;
 import explorewithme.ewm.comments.repository.CommentRepository;
 import explorewithme.ewm.comments.repository.CommentSpecifications;
 import explorewithme.ewm.events.dto.*;
-import explorewithme.ewm.events.repository.EventSpecifications;
 import explorewithme.ewm.events.service.EventService;
 import explorewithme.ewm.exception.ArgumentException;
 import explorewithme.ewm.exception.ConflictException;
@@ -17,19 +16,22 @@ import explorewithme.ewm.requests.services.UtilRequestService;
 import explorewithme.ewm.search.SearchCriteria;
 import explorewithme.ewm.search.SearchOperation;
 import explorewithme.ewm.users.UserService;
+import explorewithme.ewm.users.dto.UserDto;
 import explorewithme.ewm.users.dto.UserShortDto;
 import explorewithme.ewm.util.OffsetBasedPageRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static explorewithme.ewm.events.State.*;
@@ -55,39 +57,30 @@ public class CommentServiceImpl implements CommentService {
         return CommentMapper.shortFromComment(repository.save(toSave));
     }
 
-    private void checkUserCanPost(long userId, long eventId) {
-        eventService.checkEventId(eventId);
-        userService.checkId(userId);
-        if (!utilRequestService.hasApproveRequests(userId, eventId)){
-            log.debug("No request with status confirmed found for the user for the event");
-            throw new ArgumentException("No confirmed requests for the event for the user. Cannot confirm visit");
-        }
-        if (eventService.getEventById(eventId).getEventDate().isAfter(LocalDateTime.now())){
-            log.debug("Event is comming, cannot confirm comment for the future event");
-            throw new ArgumentException("Event is in the future only past events can be commented");
-        }
-    }
 
     @Override
     public List<FullCommentDto> getCommentsByUser(long userId) {
         userService.checkId(userId);
-        return repository.findCommentsByAuthor(userId).stream()
-                .map(this::addEventsAndUsers)
-                .collect(Collectors.toList());
+        List<Comment> comments = repository.findCommentsByAuthor(userId);
+        return addEventsAndUsers(comments);
     }
 
-    private FullCommentDto addEventsAndUsers(Comment comment){
-        FullCommentDto commentDto = CommentMapper.fromComment(comment);
-        commentDto.setAuthor(new UserShortDto(comment.getAuthor(), userService.getUserById(comment.getAuthor()).getName()));
-        EventShortDto event = eventService.getEventByIdShort(comment.getEvent());
-        commentDto.setEvent(new EventMiniDto(comment.getEvent(), event.getTitle(), event.getEventDate()));
-        return commentDto;
-    }
-
-    private CommentDtoForLists addUsersToListDto(Comment comment){
-        CommentDtoForLists commentDto = CommentMapper.fromCommentToListsDto(comment);
-        commentDto.setUserDto(new UserShortDto(comment.getAuthor(), userService.getUserById(comment.getAuthor()).getName()));
-        return commentDto;
+    // Good for single operation
+    private List<FullCommentDto> addEventsAndUsers(List<Comment> comments){
+        List<FullCommentDto> commentDtos = new ArrayList<>();
+        Map<Long,Comment> authorsIds = comments.stream()
+                .collect(Collectors.toMap(Comment::getAuthor, Function.identity()));
+        Map<Long,Comment> eventsIds = comments.stream()
+                .collect(Collectors.toMap(Comment::getEvent, Function.identity()));
+        Map<Long,EventMiniDto> eventMinis = eventService.getEventsByIds(new ArrayList<>(eventsIds.keySet()));
+        Map<Long,UserShortDto> shortDtos = userService.getUsersByIds(new ArrayList<>(authorsIds.keySet()));
+        for (Comment comment : comments){
+            FullCommentDto commentDto = CommentMapper.fromComment(comment);
+            commentDto.setEvent(eventMinis.get(comment.getEvent()));
+            commentDto.setAuthor(shortDtos.get(comment.getAuthor()));
+            commentDtos.add(commentDto);
+        }
+        return commentDtos;
     }
 
     @Override
@@ -147,7 +140,7 @@ public class CommentServiceImpl implements CommentService {
             SearchCriteria filterByText = SearchCriteria.builder()
                     .key("") // keys are preset to search text in comments
                     .operation(SearchOperation.LIKE)
-                    .value(text)
+                    .value(text.toString().toLowerCase())
                     .build();
             filters.add(filterByText);
         }
@@ -190,23 +183,24 @@ public class CommentServiceImpl implements CommentService {
 
         log.debug("Asking repo for Page of events according to search");
 
-            return repository.findAll(commentSpecification, pageable).getContent().stream()
-                    .map(Comment -> addEventsAndUsers(Comment))
-                    .collect(Collectors.toList());
+        Page<Comment> comments = repository.findAll(commentSpecification, pageable);
 
+        return addEventsAndUsers(comments.toList());
     }
+
 
     @Override
     public List<CommentDtoForLists> getCommentsForPastEvent(long eventId) {
         if (eventService.getEventById(eventId).getEventDate().isAfter(LocalDateTime.now())){
-            log.debug("Event is comming, cannot confirm comment for the future event");
+            log.debug("Event is coming, cannot confirm comment for the future event");
             throw new ArgumentException("Event is in the future only past events can be commented");
         }
 
-        return repository.getCommentsByEvent(eventId).stream()
-                        .map(this::addUsersToListDto)
-                                .collect(Collectors.toList());
+        List<Comment> comments = repository.getCommentsByEvent(eventId);
+        return addUsersToLists(comments);
+
     }
+
 
     @Override
     @Transactional
@@ -267,6 +261,50 @@ public class CommentServiceImpl implements CommentService {
         if (repository.findById(id).isEmpty()){
             log.debug("Comment with id "+ id + " not found");
             throw new NotFoundException("Comment with id "+ id + " not found");
+        }
+    }
+
+    //Add user and event infor for single comment
+    private FullCommentDto addEventsAndUsers(Comment comment){
+        FullCommentDto commentDto = CommentMapper.fromComment(comment);
+        commentDto.setAuthor(new UserShortDto(comment.getAuthor(), userService.getUserById(comment.getAuthor()).getName()));
+        EventMiniDto eventMini = eventService.getEventMiniByIds(comment.getEvent());
+        commentDto.setEvent(eventMini);
+        return commentDto;
+    }
+
+
+    //Add user information to lists of comments
+    private List<CommentDtoForLists> addUsersToLists(List<Comment> list){
+
+        List<Long> userIds = new ArrayList<>();
+        for (Comment comment: list){
+            userIds.add(comment.getAuthor());
+        }
+        Map<Long,UserShortDto> userShorts = userService.getUsersByIds(userIds);
+
+        List<CommentDtoForLists> toReturn = new ArrayList<>();
+        for (Comment comment : list) {
+            UserShortDto userShortDto = userShorts.get(comment.getAuthor());
+            CommentDtoForLists commentDto = CommentMapper.fromCommentToListsDto(comment);
+            commentDto.setUserDto(userShortDto);
+            toReturn.add(commentDto);
+        }
+
+        return toReturn;
+    }
+
+    //Checking that users can post
+    private void checkUserCanPost(long userId, long eventId) {
+        eventService.checkEventId(eventId);
+        userService.checkId(userId);
+        if (!utilRequestService.hasApproveRequests(userId, eventId)){
+            log.debug("No request with status confirmed found for the user for the event");
+            throw new ArgumentException("No confirmed requests for the event for the user. Cannot confirm visit");
+        }
+        if (eventService.getEventById(eventId).getEventDate().isAfter(LocalDateTime.now())){
+            log.debug("Event is comming, cannot confirm comment for the future event");
+            throw new ArgumentException("Event is in the future only past events can be commented");
         }
     }
 

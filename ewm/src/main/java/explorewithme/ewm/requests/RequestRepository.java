@@ -28,4 +28,9 @@ public interface RequestRepository extends JpaRepository<Request,Long> {
             "and requestor_id = ? and status='CONFIRMED'")
     int getRequestsByEventAndAndRequesterAndStatus(long eventId, long requestor, Status status);
 
+    @Query(nativeQuery = true, value = "select * from requests where status='CONFIRMED' and requests.event_id in " +
+            "(CAST(string_to_array(?, ',') AS BIGINT));")
+    List<Request> findRequestsByStatusAndByEventIn(String listAsString);
+
+
 }
