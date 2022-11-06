@@ -296,7 +296,8 @@ public class EventServiceImpl implements EventService, CategoryService {
         Event event = EventMapper.fromNewEventDto(newEventDto);
         log.debug("Saving event to repo");
         Event saved = eventRepository.save(event);
-        return getEventByEventFull(saved);
+        EventFullDto eventFullDto = getEventByEventFull(saved);
+        return eventFullDto;
     }
 
     @Override

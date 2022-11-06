@@ -32,7 +32,7 @@ public class EventMapper {
             event.setLat(eventDto.getLocation().getLat());
             event.setLon(eventDto.getLocation().getLon());
             if (eventDto.getParticipantLimit() != 0) event.setParticipantLimit(eventDto.getParticipantLimit());
-            if (!eventDto.isRequestModeration()) { event.setRequestModeration(true);}
+            eventDto.setRequestModeration(event.isRequestModeration());
             if (eventDto.isPaid()) {event.setPaid(true);}
 
             return event;
@@ -77,11 +77,11 @@ public class EventMapper {
         eventFullDto.setId(event.getId());
         eventFullDto.setPaid(event.isPaid());
         eventFullDto.setParticipantLimit( event.getParticipantLimit());
-        eventFullDto.setRequestModeration(eventFullDto.isRequestModeration());
+        eventFullDto.setRequestModeration(event.isRequestModeration());
         eventFullDto.setTitle( event.getTitle());
         eventFullDto.setState( event.getState());
         eventFullDto.setLocation(new Location(event.getLat(), event.getLon()));
-        eventFullDto.setViews(eventFullDto.getViews());
+        eventFullDto.setViews((int) event.getViews());
         return eventFullDto;
     }
 
