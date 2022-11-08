@@ -1,4 +1,4 @@
-package explorewithme.ewm.events.mappers;
+package explorewithme.ewm.events.dto.mappers;
 
 import explorewithme.ewm.events.dto.CategoryDto;
 import explorewithme.ewm.events.dto.NewCategoryDto;

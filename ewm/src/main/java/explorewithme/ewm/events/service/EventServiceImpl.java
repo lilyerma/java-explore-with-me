@@ -1,12 +1,13 @@
 package explorewithme.ewm.events.service;
 
+import explorewithme.ewm.comments.dto.CommentDtoForLists;
 import explorewithme.ewm.comments.service.UtilCommentService;
 import explorewithme.ewm.events.State;
 import explorewithme.ewm.events.admin.AdminUpdateEventRequest;
 import explorewithme.ewm.events.admin.UpdateEventRequest;
 import explorewithme.ewm.events.dto.*;
-import explorewithme.ewm.events.mappers.CategoryMapper;
-import explorewithme.ewm.events.mappers.EventMapper;
+import explorewithme.ewm.events.dto.mappers.CategoryMapper;
+import explorewithme.ewm.events.dto.mappers.EventMapper;
 import explorewithme.ewm.events.model.Category;
 import explorewithme.ewm.events.model.Event;
 import explorewithme.ewm.events.repository.*;
@@ -344,7 +345,7 @@ public class EventServiceImpl implements EventService, CategoryService {
                         " Default start is " + LocalDateTime.now());
             }
         }
-        //Setting soreting for the search
+        //Setting sorting for the search
         String sortColumn = "eventDate";
         if (sort == VIEWS) {
             sortColumn = "views";
@@ -352,7 +353,7 @@ public class EventServiceImpl implements EventService, CategoryService {
         log.debug("Parsed default filters: start" + start + ", end " + end + ", sort " + sortColumn);
         Pageable pageable = new OffsetBasedPageRequest(size, from, Sort.by(Sort.Direction.DESC, sortColumn));
 
-        //Coolectimg criteria to tlist
+        //Coolectimg criteria to list
         List<SearchCriteria> filters = new ArrayList<>();
 
         if (users != null) {
@@ -506,6 +507,14 @@ public class EventServiceImpl implements EventService, CategoryService {
         }
     }
 
+    @Override
+    public boolean checkState(Long eventId, State state){
+        if(eventRepository.getReferenceById(eventId).getState()!=state) {
+            return false;
+        }
+        return true;
+    }
+
     //Method for the Comments service, returns eventMiniDtos to add to comments
     @Override
     public Map<Long, EventMiniDto> getEventsByIds(List<Long> eventIds) {
@@ -528,7 +537,6 @@ public class EventServiceImpl implements EventService, CategoryService {
         List<Event> events = eventRepository.findEventsByIdIn(eventIds);
         return eventsShortDtoList(events);
     }
-
 
 
     //Method that calls single method one method per service to collect full info about the list of events,
@@ -585,12 +593,11 @@ public class EventServiceImpl implements EventService, CategoryService {
         dtoToReturn.setConfirmedRequests(utilRequestService.getCountOfApproveRequest(event.getId()));
         log.debug("Getting initiator user dto from user service");
         dtoToReturn.setInitiator(UserMapper.fromUserDtoToShort(userService.getUserById(event.getInitiator())));
-        if (event.getEventDate().isBefore(LocalDateTime.now())) {
-            log.debug("Getting count of comments ");
-            dtoToReturn.setNumberOfcomments(utilCommentService.countOfCommentsforEvent(event.getId()));
-        }
+        log.debug("Getting count of comments ");
+        dtoToReturn.setNumberOfcomments(utilCommentService.countOfCommentsforEvent(event.getId()));
         return dtoToReturn;
     }
+
 
 }
 

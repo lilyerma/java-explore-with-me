@@ -1,5 +1,7 @@
 package explorewithme.ewm.events.service;
 
+import explorewithme.ewm.comments.dto.CommentDtoForLists;
+import explorewithme.ewm.events.State;
 import explorewithme.ewm.events.admin.AdminUpdateEventRequest;
 import explorewithme.ewm.events.admin.UpdateEventRequest;
 import explorewithme.ewm.events.dto.*;
@@ -49,6 +51,8 @@ public interface EventService {
 
     int checkRequestIsAllowed(long userId, long eventId);
 
+    boolean checkState(Long eventId, State state);
+
     Map<Long, EventMiniDto> getEventsByIds(List<Long> eventIds);
 
     //Method for the Comments service, returns eventMiniDtos to add to comments
@@ -56,4 +60,5 @@ public interface EventService {
 
     //Method for the Comments service, returns eventMiniDtos to add to comments
     List<EventShortDto> getShortEventsByIds(List<Long> eventIds);
+
 }

@@ -1,5 +1,7 @@
 package explorewithme.ewm.events.controllers;
 
+import explorewithme.ewm.comments.dto.CommentDtoForLists;
+import explorewithme.ewm.comments.service.CommentService;
 import explorewithme.ewm.compilation.service.CompilationService;
 import explorewithme.ewm.compilation.dto.CompilationDto;
 import explorewithme.ewm.events.dto.CategoryDto;
@@ -38,6 +40,8 @@ public class EventsControllerPublic {
     private final CompilationService compilationService;
 
     private final CategoryService categoryService;
+
+    private final CommentService commentService;
 
     @Operation(summary = "Public endpoint to get list of events by pages and filters")
     @GetMapping("/events")
@@ -121,6 +125,17 @@ public class EventsControllerPublic {
         log.debug("Get request to public Api for compilation with id: " + compId);
         return compilationService.getComilationById(compId);
     }
+
+    //Get comments for the event
+    @Operation(summary = "Public endpoint to get published comments for the event")
+    @GetMapping("/events/{eventId}/comments")
+    public List<CommentDtoForLists> getCommentsList(@Positive @PathVariable long eventId)
+            throws RuntimeException {
+        log.debug("Get request to public Api for comments to event: " + eventId);
+        return commentService.getCommetnDtosByEvent(eventId);
+    }
+
+
 
     // Method to send hits and uris
 

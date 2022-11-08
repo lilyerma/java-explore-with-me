@@ -19,5 +19,4 @@ public class CommentDtoForLists {
     LocalDateTime published;
     String text;
 
-
 }

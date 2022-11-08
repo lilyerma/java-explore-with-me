@@ -1,4 +1,4 @@
-package explorewithme.ewm.events.mappers;
+package explorewithme.ewm.events.dto.mappers;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import explorewithme.ewm.events.admin.AdminUpdateEventRequest;

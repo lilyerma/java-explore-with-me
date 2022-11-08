@@ -7,6 +7,7 @@ import explorewithme.ewm.comments.dto.FullCommentDto;
 import explorewithme.ewm.comments.model.Comment;
 import explorewithme.ewm.comments.repository.CommentRepository;
 import explorewithme.ewm.comments.repository.CommentSpecifications;
+import explorewithme.ewm.events.State;
 import explorewithme.ewm.events.dto.*;
 import explorewithme.ewm.events.service.EventService;
 import explorewithme.ewm.exception.ArgumentException;
@@ -16,7 +17,6 @@ import explorewithme.ewm.requests.services.UtilRequestService;
 import explorewithme.ewm.search.SearchCriteria;
 import explorewithme.ewm.search.SearchOperation;
 import explorewithme.ewm.users.UserService;
-import explorewithme.ewm.users.dto.UserDto;
 import explorewithme.ewm.users.dto.UserShortDto;
 import explorewithme.ewm.util.OffsetBasedPageRequest;
 import lombok.RequiredArgsConstructor;
@@ -29,9 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static explorewithme.ewm.events.State.*;
@@ -66,15 +66,17 @@ public class CommentServiceImpl implements CommentService {
     }
 
     // Good for single operation
-    private List<FullCommentDto> addEventsAndUsers(List<Comment> comments){
+    private List<FullCommentDto> addEventsAndUsers(List<Comment> comments) {
         List<FullCommentDto> commentDtos = new ArrayList<>();
-        Map<Long,Comment> authorsIds = comments.stream()
-                .collect(Collectors.toMap(Comment::getAuthor, Function.identity()));
-        Map<Long,Comment> eventsIds = comments.stream()
-                .collect(Collectors.toMap(Comment::getEvent, Function.identity()));
-        Map<Long,EventMiniDto> eventMinis = eventService.getEventsByIds(new ArrayList<>(eventsIds.keySet()));
-        Map<Long,UserShortDto> shortDtos = userService.getUsersByIds(new ArrayList<>(authorsIds.keySet()));
-        for (Comment comment : comments){
+        List<Long> authorsIds = comments.stream()
+                .map(Comment::getAuthor)
+                .collect(Collectors.toList());
+        List<Long> eventsIds = comments.stream()
+                .map(Comment::getEvent)
+                .collect(Collectors.toList());
+        Map<Long, EventMiniDto> eventMinis = eventService.getEventsByIds(eventsIds);
+        Map<Long, UserShortDto> shortDtos = userService.getUsersByIds(authorsIds);
+        for (Comment comment : comments) {
             FullCommentDto commentDto = CommentMapper.fromComment(comment);
             commentDto.setEvent(eventMinis.get(comment.getEvent()));
             commentDto.setAuthor(shortDtos.get(comment.getAuthor()));
@@ -87,9 +89,9 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     public FullCommentDto publishComment(long commentId) {
         checkId(commentId);
-        if(repository.getReferenceById(commentId).getState()==PENDING){
+        if (repository.getReferenceById(commentId).getState() == PENDING) {
             log.debug("Sending request to repo to change status");
-             repository.updateCommentStatus(PUBLISHED,false,  commentId, LocalDateTime.now());
+            repository.updateCommentStatus(PUBLISHED, false, commentId, LocalDateTime.now());
         } else {
             log.debug("State is not pending, cannot publish from this state");
             throw new ArgumentException("State is not pending, cannot publish from this state");
@@ -102,26 +104,31 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     public FullCommentDto rejectComment(long commentId) {
         checkId(commentId);
-        log.debug("Sending request to repo to change status");
-        repository.updateCommentStatus(REJECTED,false, commentId, LocalDateTime.now());
+        if (repository.getReferenceById(commentId).getState() == PENDING) {
+            log.debug("Sending request to repo to change status");
+            repository.updateCommentStatus(REJECTED, false, commentId, LocalDateTime.now());
+        } else {
+            log.debug("Comment is not in Rending state cannot be rejected");
+            throw new ArgumentException("Comment is not in Rending state cannot be rejected");
+        }
         return addEventsAndUsers(repository.getReferenceById(commentId));
     }
 
     @Override
     public List<FullCommentDto> getCommentsForAdmin(Long[] users, Long[] eventIds, String[] states, String text,
                                                     Boolean moderation, String startStr, String endStr, int from, int size) {
-        LocalDateTime start = null;
         LocalDateTime end = LocalDateTime.now();
-        if(endStr != null) {
-            end = LocalDateTime.parse(startStr);
-            if(end.isAfter(LocalDateTime.now())){
-                log.debug("No comment for future events allowed");
-                throw new ArgumentException("No comments for future events allowded");
+        LocalDateTime start = null;
+        if (startStr != null) {
+            start = LocalDateTime.parse(startStr);
+            if (start.isAfter(LocalDateTime.now())){
+                log.debug("No use to search future comments");
+                throw new ArgumentException("Cannot search future comments. Date should be in the past");
             }
         }
-        if(startStr != null){
-            start = LocalDateTime.parse(endStr);
-            if (end.isBefore(start)){
+        if (endStr != null) {
+            end = LocalDateTime.parse(endStr);
+            if (end.isBefore(start) || end.isAfter(LocalDateTime.now())) {
                 log.debug("Time range end should be after start, specify earlier date of the start." +
                         " Default end is " + LocalDateTime.now());
                 throw new ConflictException("Time range end should be after start, specify earlier date of the start." +
@@ -135,14 +142,35 @@ public class CommentServiceImpl implements CommentService {
         Pageable pageable = new OffsetBasedPageRequest(size, from, Sort.by(Sort.Direction.ASC, sortColumn));
 
         List<SearchCriteria> filters = new ArrayList<>();
-        if (text != null){
+        if (text != null) {
             log.debug("Building search criteria for text");
             SearchCriteria filterByText = SearchCriteria.builder()
                     .key("") // keys are preset to search text in comments
                     .operation(SearchOperation.LIKE)
-                    .value(text.toString().toLowerCase())
+                    .value(text.toLowerCase())
                     .build();
             filters.add(filterByText);
+        }
+
+        if (users != null) {
+            log.debug("Building search criteria for users");
+            SearchCriteria filterByUsers = SearchCriteria.builder()
+                    .key("author")
+                    .operation(SearchOperation.IN)
+                    .value(Arrays.toString(users))
+                    .type("List<Long>")
+                    .build();
+            filters.add(filterByUsers);
+        }
+
+        if (moderation != null) {
+            log.debug("Building search criteria for moderation");
+            SearchCriteria filterByEnd = SearchCriteria.builder()
+                    .key("moderation")
+                    .operation(SearchOperation.EQUAL)
+                    .value(moderation)
+                    .build();
+            filters.add(filterByEnd);
         }
 
         if (states != null) {
@@ -150,12 +178,22 @@ public class CommentServiceImpl implements CommentService {
             SearchCriteria filterByStates = SearchCriteria.builder()
                     .key("state")
                     .operation(SearchOperation.IN)
-                    .value(states)
+                    .value(Arrays.toString(states))
                     .type("List<String>")
                     .build();
             filters.add(filterByStates);
         }
 
+        if (eventIds != null) {
+            log.debug("Building search criteria for event state");
+            SearchCriteria filterByStates = SearchCriteria.builder()
+                    .key("event")
+                    .operation(SearchOperation.IN)
+                    .value(Arrays.toString(eventIds))
+                    .type("List<Long>")
+                    .build();
+            filters.add(filterByStates);
+        }
 
         log.debug("Building search criteria for end");
         SearchCriteria filterByEnd = SearchCriteria.builder()
@@ -165,14 +203,14 @@ public class CommentServiceImpl implements CommentService {
                 .build();
         filters.add(filterByEnd);
 
-        if (start!= null) {
-            log.debug("Building search criteria for end");
+        if (start != null) {
+            log.debug("Building search criteria for start");
             SearchCriteria filterByStart = SearchCriteria.builder()
                     .key("created")
-                    .operation(SearchOperation.LESS_THAN)
+                    .operation(SearchOperation.GREATER_THAN)
                     .value(start.toString())
                     .build();
-            filters.add(filterByEnd);
+            filters.add(filterByStart);
         }
 
         CommentSpecifications commentSpecification = new CommentSpecifications();
@@ -190,25 +228,12 @@ public class CommentServiceImpl implements CommentService {
 
 
     @Override
-    public List<CommentDtoForLists> getCommentsForPastEvent(long eventId) {
-        if (eventService.getEventById(eventId).getEventDate().isAfter(LocalDateTime.now())){
-            log.debug("Event is coming, cannot confirm comment for the future event");
-            throw new ArgumentException("Event is in the future only past events can be commented");
-        }
-
-        List<Comment> comments = repository.getCommentsByEvent(eventId);
-        return addUsersToLists(comments);
-
-    }
-
-
-    @Override
     @Transactional
     public void unpublishComment(long commentId) {
         checkId(commentId);
         log.debug("Sending request to repo to change status");
-        if(repository.getReferenceById(commentId).getState()==PUBLISHED){
-            repository.updateCommentStatus(REJECTED,false, commentId, LocalDateTime.now());
+        if (repository.getReferenceById(commentId).getState() == PUBLISHED) {
+            repository.updateCommentStatus(REJECTED, false, commentId, LocalDateTime.now());
             log.debug("Switched published to rejected and turned off moderation");
         } else {
             log.debug("Comment was not published cannot unpublish");
@@ -219,9 +244,9 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public void deleteComment(long userId, long commentId) {
-        Comment comment =repository.getCommentsByAuthorAndId(userId,commentId);
-        if(comment!=null){
-            if(comment.getState()==PENDING){
+        Comment comment = repository.getCommentsByAuthorAndId(userId, commentId);
+        if (comment != null) {
+            if (comment.getState() == PENDING) {
                 repository.delete(comment);
                 log.debug("Comment deleted");
             } else {
@@ -236,13 +261,13 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentDto updateComment(long userId, CommentDto commentDto) {
-        if(commentDto.getId()==0){
+        if (commentDto.getId() <= 0) {
             log.debug("No id for the comment specified");
-            throw new ArgumentException("No id for the comment specified");
+            throw new ArgumentException("Id is incorrect");
         }
-        Comment comment =repository.getCommentsByAuthorAndId(userId,commentDto.getId());
-        if(comment!=null){
-            if(comment.getState()==PENDING){
+        Comment comment = repository.getCommentsByAuthorAndId(userId, commentDto.getId());
+        if (comment != null) {
+            if (comment.getState() == PENDING) {
                 comment.setText(commentDto.getText());
                 log.debug("Saving update");
                 return CommentMapper.shortFromComment(repository.save(comment));
@@ -255,17 +280,25 @@ public class CommentServiceImpl implements CommentService {
             throw new NotFoundException("Comment and user with these ids were not found");
         }
     }
+    @Override
+    public List<CommentDtoForLists> getCommetnDtosByEvent(long eventsId){
+        eventService.checkEventId(eventsId);
+        List<Comment> comments = repository.findCommentsByEventEqualsAndStateEqualsOrderByPublishedDesc(eventsId,
+                        State.PUBLISHED).stream()
+                .collect(Collectors.toList());
+        return addUsersToLists(comments);
+    }
 
 
     public void checkId(long id) {
-        if (repository.findById(id).isEmpty()){
-            log.debug("Comment with id "+ id + " not found");
-            throw new NotFoundException("Comment with id "+ id + " not found");
+        if (repository.findById(id).isEmpty()) {
+            log.debug("Comment with id " + id + " not found");
+            throw new NotFoundException("Comment with id " + id + " not found");
         }
     }
 
     //Add user and event infor for single comment
-    private FullCommentDto addEventsAndUsers(Comment comment){
+    private FullCommentDto addEventsAndUsers(Comment comment) {
         FullCommentDto commentDto = CommentMapper.fromComment(comment);
         commentDto.setAuthor(new UserShortDto(comment.getAuthor(), userService.getUserById(comment.getAuthor()).getName()));
         EventMiniDto eventMini = eventService.getEventMiniByIds(comment.getEvent());
@@ -275,13 +308,13 @@ public class CommentServiceImpl implements CommentService {
 
 
     //Add user information to lists of comments
-    private List<CommentDtoForLists> addUsersToLists(List<Comment> list){
+    private List<CommentDtoForLists> addUsersToLists(List<Comment> list) {
 
         List<Long> userIds = new ArrayList<>();
-        for (Comment comment: list){
+        for (Comment comment : list) {
             userIds.add(comment.getAuthor());
         }
-        Map<Long,UserShortDto> userShorts = userService.getUsersByIds(userIds);
+        Map<Long, UserShortDto> userShorts = userService.getUsersByIds(userIds);
 
         List<CommentDtoForLists> toReturn = new ArrayList<>();
         for (Comment comment : list) {
@@ -297,14 +330,14 @@ public class CommentServiceImpl implements CommentService {
     //Checking that users can post
     private void checkUserCanPost(long userId, long eventId) {
         eventService.checkEventId(eventId);
-        userService.checkId(userId);
-        if (!utilRequestService.hasApproveRequests(userId, eventId)){
-            log.debug("No request with status confirmed found for the user for the event");
-            throw new ArgumentException("No confirmed requests for the event for the user. Cannot confirm visit");
+        if (!eventService.checkState(eventId, PUBLISHED)){
+            log.debug("Event is not published");
+            throw new ArgumentException("Event is not published, cannot add comment to unpublished event");
         }
-        if (eventService.getEventById(eventId).getEventDate().isAfter(LocalDateTime.now())){
-            log.debug("Event is comming, cannot confirm comment for the future event");
-            throw new ArgumentException("Event is in the future only past events can be commented");
+        userService.checkId(userId);
+        if (eventService.checkOwnership(userId, eventId)) {
+            log.debug("Event owner cannot post comments");
+            throw new ArgumentException("Event owner cannot post comments");
         }
     }
 

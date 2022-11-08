@@ -1,5 +1,6 @@
 package explorewithme.ewm.events.repository;
 
+import explorewithme.ewm.events.State;
 import explorewithme.ewm.events.model.Event;
 import explorewithme.ewm.search.SearchCriteria;
 import lombok.extern.slf4j.Slf4j;
@@ -65,10 +66,12 @@ public class EventSpecifications implements Specification<Event> {
                 predicates.add(builder.equal(
                         root.get(criteria.getKey()), criteria.getValue()));
             } else if (criteria.getOperation().equals(SearchOperation.LIKE)) {
+                String search = String.valueOf(criteria.getValue()).substring(1,
+                        String.valueOf(criteria.getValue()).length() - 1);
                 predicates.add(builder.or(
-                        builder.like(builder.lower(root.get("title")), "%" + String.valueOf(criteria.getValue()) + "%"),
-                        builder.like(builder.lower(root.get("description")), "%" + String.valueOf(criteria.getValue()) + "%"),
-                        builder.like(builder.lower(root.get("annotation")), "%" + String.valueOf(criteria.getValue()) + "%")));
+                        builder.like(builder.lower(root.get("title")), "%" + search + "%"),
+                        builder.like(builder.lower(root.get("description")), "%" + search + "%"),
+                        builder.like(builder.lower(root.get("annotation")), "%" + search + "%")));
             } else if (criteria.getOperation().equals(SearchOperation.IN)) {
                 List<Predicate> toStore = new ArrayList<>();
                 if (criteria.getType() == "List<Long>") {
@@ -82,11 +85,11 @@ public class EventSpecifications implements Specification<Event> {
                         predicates.add(builder.or(toStore.toArray(new Predicate[0])));
                     }
                 } else if (criteria.getType() == "List<String") {
-                    List<String> list = (List<String>) castTypeS(criteria.getValue().toString());
+                    List<State> listState =  castTypeS(criteria.getValue().toString());
                     if (list.size() == 1) {
-                        predicates.add(builder.equal(root.get(criteria.getKey()), list.get(0)));
+                        predicates.add(builder.equal(root.get(criteria.getKey()), listState.get(0)));
                     } else {
-                        for (String str : list) {
+                        for (State str : listState) {
                             toStore.add(builder.equal(root.get(criteria.getKey()), str));
                         }
                         predicates.add(builder.or(toStore.toArray(new Predicate[0])));
@@ -109,9 +112,13 @@ public class EventSpecifications implements Specification<Event> {
         return longList;
     }
 
-    private static List<String> castTypeS(String value) {
-        String[] string = value.split(",");
-        return Arrays.asList(string);
+    private static List<State> castTypeS(String value) {
+        String[] string = (value.substring(1, value.length() - 1)).split(",");
+        List<State> stringList = new ArrayList<>();
+        for (String element : string) {
+            stringList.add(State.valueOf(element));
+        }
+        return stringList;
     }
 
 }

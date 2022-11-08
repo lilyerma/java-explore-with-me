@@ -18,8 +18,6 @@ public interface CommentService {
     List<FullCommentDto> getCommentsForAdmin(Long[] users, Long[] eventIds, String[] states, String text,
                                              Boolean moderation, String startStr, String endStr, int from, int size);
 
-    List<CommentDtoForLists> getCommentsForPastEvent(long evenId);
-
     void unpublishComment(long commentId);
 
     void deleteComment(long userId, long commentId);
@@ -27,4 +25,5 @@ public interface CommentService {
     CommentDto updateComment(long userId, CommentDto commentDto);
 
 
+    List<CommentDtoForLists> getCommetnDtosByEvent(long eventsId);
 }

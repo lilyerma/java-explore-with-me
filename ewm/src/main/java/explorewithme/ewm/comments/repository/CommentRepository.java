@@ -18,18 +18,17 @@ public interface CommentRepository extends JpaRepository<Comment,Long>, JpaSpeci
     @Query(nativeQuery = true, value = "select * from comments where author = ? and comment_id = ?")
     Comment getCommentsByAuthorAndId(long author, long commentId);
 
-    @Query(nativeQuery = true, value = "select * from comments where event_id = ?")
-    List<Comment> getCommentsByEvent(long event);
+    @Query
+    int countCommentsByEventEqualsAndStateEquals(long eventId, State state);
 
-    @Query(nativeQuery = true, value = "select count(*) from comments where event_id =?")
-    int countCommentById(long eventId);
+    @Query
+    List<Comment> findCommentsByEventEqualsAndStateEqualsOrderByPublishedDesc(Long eventId, State state);
 
     @Modifying(clearAutomatically = true)
     @Query("update Comment c set c.state = ?1, c.moderation = ?2, c.published = ?4 where c.id =?3")
     int updateCommentStatus(State state, boolean moderation, long commentId, LocalDateTime date);
 
     @Query
-    List<Comment> findCommentsByEventIn(List<Long> eventIds);
-
+    List<Comment> findCommentsByEventInAndStateEquals(List<Long> eventIds, State state);
 
 }

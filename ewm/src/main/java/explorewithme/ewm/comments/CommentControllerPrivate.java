@@ -50,7 +50,7 @@ public class CommentControllerPrivate {
     }
 
     @Operation(description = "User edits self-created comment if not published")
-    @PatchMapping("users/{userId}/comment/")
+    @PatchMapping("users/{userId}/comment")
     public CommentDto updateComment (@Positive @PathVariable long userId,
                                      @Valid @RequestBody CommentDto commentDto)
             throws RuntimeException {
@@ -61,14 +61,14 @@ public class CommentControllerPrivate {
     //Admin work with comments
 
     @Operation(description = "Admin sets comment to PUBLISHED")
-    @PatchMapping("/comments/{commentId}/publish")
+    @PatchMapping("admin/comments/{commentId}/publish")
     public FullCommentDto publishCommentAdmin(@Positive @PathVariable long commentId) throws RuntimeException {
         log.debug("Patch publish comment by admin request");
         return commentService.publishComment(commentId);
     }
 
     @Operation(description = "Admin rejects comment")
-    @PatchMapping("/comments/{commentId}/reject")
+    @PatchMapping("admin/comments/{commentId}/reject")
     public FullCommentDto rejectCommmentAdmin(@Positive @PathVariable long commentId)
             throws RuntimeException {
         log.debug("Patch reject comment by admin request");
@@ -76,18 +76,18 @@ public class CommentControllerPrivate {
     }
 
     @Operation(description = "Admin sets comment to Rejected from Published")
-    @DeleteMapping("/comments/{commentId}/unpublish")
+    @DeleteMapping("admin/comments/{commentId}/unpublish")
     public void unpublishCommmentAdmin(@Positive @PathVariable long commentId) throws RuntimeException {
         log.debug("Unpublish  comment by admin request");
         commentService.unpublishComment(commentId);
     }
 
     @Operation(description = "Get comments by filters")
-    @GetMapping("/comments")
+    @GetMapping("admin/comments")
     public List<FullCommentDto> getCommentsForAdmin(@RequestParam(name = "users", required = false) Long[] users,
                                                     @RequestParam(name = "event", required = false) Long[] eventId,
                                                     @RequestParam(name = "states", required = false) String[] states,
-                                                    @RequestParam(name = "moderation", required = false) boolean moderation,
+                                                    @RequestParam(name = "moderation", required = false) Boolean moderation,
                                                     @RequestParam(name = "text", required = false) String text,
                                                     @RequestParam(name = "rangeStart", required = false) String start,
                                                     @RequestParam(name = "rangeEnd", required = false) String end,

@@ -1,7 +1,7 @@
 package explorewithme.ewm.comments.repository;
 
 import explorewithme.ewm.comments.model.Comment;
-import explorewithme.ewm.events.model.Event;
+import explorewithme.ewm.events.State;
 import explorewithme.ewm.events.repository.SearchOperation;
 import explorewithme.ewm.search.SearchCriteria;
 import lombok.extern.slf4j.Slf4j;
@@ -15,8 +15,9 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+
+import static explorewithme.ewm.search.SearchOperation.*;
 
 @Slf4j
 @Component
@@ -53,30 +54,32 @@ public class CommentSpecifications  implements Specification<Comment> {
 
         //add criteria to predicate
         for (SearchCriteria criteria : list) {
-            if (criteria.getOperation().equals(SearchOperation.GREATER_THAN)) { // Hardcoded for LocalDateTime for brevity
+            if (criteria.getOperation().equals(GREATER_THAN)) { // Hardcoded for LocalDateTime for brevity
                 predicates.add(builder.greaterThan(
-                        root.get("eventDate"), LocalDateTime.parse(criteria.getValue().toString())));
-            } else if (criteria.getOperation().equals(SearchOperation.LESS_THAN)) {
+                        root.get(criteria.getKey()), LocalDateTime.parse(criteria.getValue().toString())));
+            } else if (criteria.getOperation().equals(LESS_THAN)) {
                 predicates.add(builder.lessThan(  // Hardcoded for LocalDateTime for brevity
-                        root.get("eventDate"), LocalDateTime.parse(criteria.getValue().toString())));
-            } else if (criteria.getOperation().equals(SearchOperation.GREATER_THAN_EQUAL)) {
+                        root.get(criteria.getKey()), LocalDateTime.parse(criteria.getValue().toString())));
+            } else if (criteria.getOperation().equals(GREATER_THAN_EQUAL)) {
                 predicates.add(builder.greaterThanOrEqualTo(
                         root.get(criteria.getKey()), criteria.getValue().toString()));
             } else if (criteria.getOperation().equals(SearchOperation.LESS_THAN_EQUAL)) {
                 predicates.add(builder.lessThanOrEqualTo(
                         root.get(criteria.getKey()), criteria.getValue().toString()));
-            } else if (criteria.getOperation().equals(SearchOperation.NOT_EQUAL)) {
+            } else if (criteria.getOperation().equals(NOT_EQUAL)) {
                 predicates.add(builder.notEqual(
                         root.get(criteria.getKey()), criteria.getValue()));
-            } else if (criteria.getOperation().equals(SearchOperation.EQUAL)) {
+            } else if (criteria.getOperation().equals(EQUAL)) {
                 predicates.add(builder.equal(
                         root.get(criteria.getKey()), criteria.getValue()));
-            } else if (criteria.getOperation().equals(SearchOperation.LIKE)) {
-                predicates.add(builder.like(builder.lower(root.get("text")), "%"
-                        + String.valueOf(criteria.getValue()) + "%"));
-            } else if (criteria.getOperation().equals(SearchOperation.IN)) {
+            } else if (criteria.getOperation().equals(LIKE)) {
+                String search = String.valueOf(criteria.getValue()).substring(1,
+                        String.valueOf(criteria.getValue()).length() - 1);
+                predicates.add(builder.like(builder.lower(root.get("text")),
+                          "%" + search + "%"));   //(String) criteria.getValue()
+            } else if (criteria.getOperation().equals(IN)) {
                 List<Predicate> toStore = new ArrayList<>();
-                if (criteria.getType() == "List<Long>") {
+                if (criteria.getType().equals("List<Long>")) {
                     List<Long> list = castTypeL(criteria.getValue().toString());
                     if (list.size() == 1) {
                         predicates.add(builder.equal(root.get(criteria.getKey()), list.get(0)));
@@ -86,12 +89,12 @@ public class CommentSpecifications  implements Specification<Comment> {
                         }
                         predicates.add(builder.or(toStore.toArray(new Predicate[0])));
                     }
-                } else if (criteria.getType() == "List<String") {
-                    List<String> list = (List<String>) castTypeS(criteria.getValue().toString());
+                } else if (criteria.getType().equals("List<String>")) {
+                    List<State> list =  castTypeS(criteria.getValue().toString());
                     if (list.size() == 1) {
-                        predicates.add(builder.equal(root.get(criteria.getKey()), list.get(0)));
+                        predicates.add(builder.equal(root.get(criteria.getKey()),list.get(0)));
                     } else {
-                        for (String str : list) {
+                        for (State str : list) {
                             toStore.add(builder.equal(root.get(criteria.getKey()), str));
                         }
                         predicates.add(builder.or(toStore.toArray(new Predicate[0])));
@@ -114,9 +117,13 @@ public class CommentSpecifications  implements Specification<Comment> {
         return longList;
     }
 
-    private static List<String> castTypeS(String value) {
-        String[] string = value.split(",");
-        return Arrays.asList(string);
+    private static List<State> castTypeS(String value) {
+        String[] string = (value.substring(1, value.length() - 1)).split(",");
+        List<State> stringList = new ArrayList<>();
+        for (String element : string) {
+            stringList.add(State.valueOf(element));
+        }
+        return stringList;
     }
 
 
