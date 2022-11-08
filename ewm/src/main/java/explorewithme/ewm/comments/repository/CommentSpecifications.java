@@ -1,26 +1,33 @@
-package explorewithme.ewm.events.repository;
+package explorewithme.ewm.comments.repository;
 
+import explorewithme.ewm.comments.model.Comment;
 import explorewithme.ewm.events.State;
-import explorewithme.ewm.events.model.Event;
+import explorewithme.ewm.events.repository.SearchOperation;
 import explorewithme.ewm.search.SearchCriteria;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.criteria.*;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
+import static explorewithme.ewm.search.SearchOperation.*;
 
 @Slf4j
 @Component
-public class EventSpecifications implements Specification<Event> {
+@Transactional
+public class CommentSpecifications  implements Specification<Comment> {
+
 
     private List<SearchCriteria> list;
 
-    public EventSpecifications() {
+    public CommentSpecifications() {
         this.list = new ArrayList<>();
     }
 
@@ -29,52 +36,50 @@ public class EventSpecifications implements Specification<Event> {
     }
 
     @Override
-    public Specification<Event> and(Specification<Event> other) {
+    public Specification<Comment> and(Specification<Comment> other) {
         return Specification.super.and(other);
     }
 
     @Override
-    public Specification<Event> or(Specification<Event> other) {
+    public Specification<Comment> or(Specification<Comment> other) {
         return Specification.super.or(other);
     }
 
     //This method requires work to accomodate arbitrary parameter types (Objects)
     @Override
-    public Predicate toPredicate(Root<Event> root, CriteriaQuery<?> query, CriteriaBuilder builder) {
+    public Predicate toPredicate(Root<Comment> root, CriteriaQuery<?> query, CriteriaBuilder builder) {
 
         //create a new predicate list
         List<Predicate> predicates = new ArrayList<>();
 
         //add criteria to predicate
         for (SearchCriteria criteria : list) {
-            if (criteria.getOperation().equals(SearchOperation.GREATER_THAN)) { // Hardcoded for LocalDateTime for brevity
+            if (criteria.getOperation().equals(GREATER_THAN)) { // Hardcoded for LocalDateTime for brevity
                 predicates.add(builder.greaterThan(
-                        root.get("eventDate"), LocalDateTime.parse(criteria.getValue().toString())));
-            } else if (criteria.getOperation().equals(SearchOperation.LESS_THAN)) {
+                        root.get(criteria.getKey()), LocalDateTime.parse(criteria.getValue().toString())));
+            } else if (criteria.getOperation().equals(LESS_THAN)) {
                 predicates.add(builder.lessThan(  // Hardcoded for LocalDateTime for brevity
-                        root.get("eventDate"), LocalDateTime.parse(criteria.getValue().toString())));
-            } else if (criteria.getOperation().equals(SearchOperation.GREATER_THAN_EQUAL)) {
+                        root.get(criteria.getKey()), LocalDateTime.parse(criteria.getValue().toString())));
+            } else if (criteria.getOperation().equals(GREATER_THAN_EQUAL)) {
                 predicates.add(builder.greaterThanOrEqualTo(
                         root.get(criteria.getKey()), criteria.getValue().toString()));
             } else if (criteria.getOperation().equals(SearchOperation.LESS_THAN_EQUAL)) {
                 predicates.add(builder.lessThanOrEqualTo(
                         root.get(criteria.getKey()), criteria.getValue().toString()));
-            } else if (criteria.getOperation().equals(SearchOperation.NOT_EQUAL)) {
+            } else if (criteria.getOperation().equals(NOT_EQUAL)) {
                 predicates.add(builder.notEqual(
                         root.get(criteria.getKey()), criteria.getValue()));
-            } else if (criteria.getOperation().equals(SearchOperation.EQUAL)) {
+            } else if (criteria.getOperation().equals(EQUAL)) {
                 predicates.add(builder.equal(
                         root.get(criteria.getKey()), criteria.getValue()));
-            } else if (criteria.getOperation().equals(SearchOperation.LIKE)) {
+            } else if (criteria.getOperation().equals(LIKE)) {
                 String search = String.valueOf(criteria.getValue()).substring(1,
                         String.valueOf(criteria.getValue()).length() - 1);
-                predicates.add(builder.or(
-                        builder.like(builder.lower(root.get("title")), "%" + search + "%"),
-                        builder.like(builder.lower(root.get("description")), "%" + search + "%"),
-                        builder.like(builder.lower(root.get("annotation")), "%" + search + "%")));
-            } else if (criteria.getOperation().equals(SearchOperation.IN)) {
+                predicates.add(builder.like(builder.lower(root.get("text")),
+                          "%" + search + "%"));   //(String) criteria.getValue()
+            } else if (criteria.getOperation().equals(IN)) {
                 List<Predicate> toStore = new ArrayList<>();
-                if (criteria.getType() == "List<Long>") {
+                if (criteria.getType().equals("List<Long>")) {
                     List<Long> list = castTypeL(criteria.getValue().toString());
                     if (list.size() == 1) {
                         predicates.add(builder.equal(root.get(criteria.getKey()), list.get(0)));
@@ -84,12 +89,12 @@ public class EventSpecifications implements Specification<Event> {
                         }
                         predicates.add(builder.or(toStore.toArray(new Predicate[0])));
                     }
-                } else if (criteria.getType() == "List<String") {
-                    List<State> listState =  castTypeS(criteria.getValue().toString());
+                } else if (criteria.getType().equals("List<String>")) {
+                    List<State> list =  castTypeS(criteria.getValue().toString());
                     if (list.size() == 1) {
-                        predicates.add(builder.equal(root.get(criteria.getKey()), listState.get(0)));
+                        predicates.add(builder.equal(root.get(criteria.getKey()),list.get(0)));
                     } else {
-                        for (State str : listState) {
+                        for (State str : list) {
                             toStore.add(builder.equal(root.get(criteria.getKey()), str));
                         }
                         predicates.add(builder.or(toStore.toArray(new Predicate[0])));
@@ -121,6 +126,6 @@ public class EventSpecifications implements Specification<Event> {
         return stringList;
     }
 
-}
 
+}
 

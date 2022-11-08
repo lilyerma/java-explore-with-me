@@ -1,4 +1,4 @@
-package explorewithme.ewm.events.repository;
+package explorewithme.ewm.search;
 
 public enum FilterSort {
     EVENT_DATE,  VIEWS

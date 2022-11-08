@@ -1,6 +1,7 @@
 package explorewithme.ewm.events.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import explorewithme.ewm.comments.dto.CommentDtoForLists;
 import explorewithme.ewm.events.State;
 import explorewithme.ewm.events.model.Location;
 import explorewithme.ewm.users.dto.UserShortDto;
@@ -52,5 +53,6 @@ public class EventFullDto {
     String title;
     @Schema(description = "Number of views")
     int views;
-
+    @Schema(description = "Number of comments")
+    int numberOfcomments;
 }

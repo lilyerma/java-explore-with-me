@@ -8,6 +8,7 @@ import explorewithme.ewm.compilation.model.CompilationEvent;
 import explorewithme.ewm.compilation.repository.CompEventRepository;
 import explorewithme.ewm.compilation.repository.CompilationRepository;
 import explorewithme.ewm.events.dto.EventShortDto;
+import explorewithme.ewm.events.model.Event;
 import explorewithme.ewm.events.service.EventService;
 import explorewithme.ewm.exception.ArgumentException;
 import explorewithme.ewm.exception.NotFoundException;
@@ -69,9 +70,12 @@ public class CompilationServiceImp implements CompilationService {
 
     private CompilationDto addEventsShort(Compilation compilation){
 
-        List<EventShortDto> events = compEventRepository.getEventsByIdEquals(compilation.getId()).stream()
-                .map(id -> eventService.getEventByIdShort(id))
-                .collect(toList());
+        List<Long> eventIds = compEventRepository.getEventsByIdEquals(compilation.getId());
+
+        List<EventShortDto> events = eventService.getShortEventsByIds(eventIds);
+//        List<EventShortDto> events = compEventRepository.getEventsByIdEquals(compilation.getId()).stream()
+//                .map(id -> eventService.getEventByIdShort(id))
+//                .collect(toList());
         CompilationDto toReturn = CompilationMapper.fromCompilation(compilation);
         log.debug("Adding events to compiltaion dto");
         toReturn.setEvents(events);

@@ -1,31 +1,26 @@
 package explorewithme.ewm.events.controllers;
 
+import explorewithme.ewm.comments.dto.CommentDtoForLists;
+import explorewithme.ewm.comments.service.CommentService;
 import explorewithme.ewm.compilation.service.CompilationService;
 import explorewithme.ewm.compilation.dto.CompilationDto;
 import explorewithme.ewm.events.dto.CategoryDto;
 import explorewithme.ewm.events.dto.EventFullDto;
 import explorewithme.ewm.events.dto.EventShortDto;
 import explorewithme.ewm.events.dto.StatsDto;
-import explorewithme.ewm.events.repository.FilterSort;
 import explorewithme.ewm.events.service.CategoryService;
 import explorewithme.ewm.events.service.EventService;
+import explorewithme.ewm.search.FilterSort;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.server.RequestPredicates;
-import org.springframework.web.reactive.function.server.RouterFunction;
-import org.springframework.web.reactive.function.server.RouterFunctions;
-import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
 import javax.servlet.http.HttpServletRequest;
@@ -45,6 +40,8 @@ public class EventsControllerPublic {
     private final CompilationService compilationService;
 
     private final CategoryService categoryService;
+
+    private final CommentService commentService;
 
     @Operation(summary = "Public endpoint to get list of events by pages and filters")
     @GetMapping("/events")
@@ -128,6 +125,17 @@ public class EventsControllerPublic {
         log.debug("Get request to public Api for compilation with id: " + compId);
         return compilationService.getComilationById(compId);
     }
+
+    //Get comments for the event
+    @Operation(summary = "Public endpoint to get published comments for the event")
+    @GetMapping("/events/{eventId}/comments")
+    public List<CommentDtoForLists> getCommentsList(@Positive @PathVariable long eventId)
+            throws RuntimeException {
+        log.debug("Get request to public Api for comments to event: " + eventId);
+        return commentService.getCommetnDtosByEvent(eventId);
+    }
+
+
 
     // Method to send hits and uris
 

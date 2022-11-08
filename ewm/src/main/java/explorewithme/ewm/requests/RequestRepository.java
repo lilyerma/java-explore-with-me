@@ -10,7 +10,7 @@ import java.util.List;
 
 @Repository
 @Transactional
-public interface RequestRepository extends JpaRepository<Request,Long> {
+public interface RequestRepository extends JpaRepository<Request, Long> {
 
     @Query
     List<Request> getRequestsByRequester(long userId);
@@ -18,10 +18,12 @@ public interface RequestRepository extends JpaRepository<Request,Long> {
     @Query
     List<Request> getRequestsByRequesterAndEvent(long userId, long eventId);
 
-    @Query (nativeQuery = true, value = "select count(request_id) from requests where event_id = ? and status='CONFIRMED'")
+    @Query(nativeQuery = true, value = "select count(request_id) from requests where event_id = ? and status='CONFIRMED'")
     int countRequestByEventAndStatus(long eventId);
 
     @Query
     List<Request> getRequestsByEvent(long eventId);
 
+    @Query
+    List<Request> findRequestsByEventInAndAndStatusEquals(List<Long> events, Status status);
 }

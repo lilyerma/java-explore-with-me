@@ -1,14 +1,18 @@
-package explorewithme.ewm.events.mappers;
+package explorewithme.ewm.events.dto.mappers;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import explorewithme.ewm.events.admin.AdminUpdateEventRequest;
 import explorewithme.ewm.events.admin.UpdateEventRequest;
 import explorewithme.ewm.events.dto.EventFullDto;
+import explorewithme.ewm.events.dto.EventMiniDto;
 import explorewithme.ewm.events.dto.EventShortDto;
 import explorewithme.ewm.events.dto.NewEventDto;
 import explorewithme.ewm.events.model.Event;
 import explorewithme.ewm.events.model.Location;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
 
 @Component
 @Slf4j
@@ -27,8 +31,9 @@ public class EventMapper {
             );
             event.setLat(eventDto.getLocation().getLat());
             event.setLon(eventDto.getLocation().getLon());
+            event.setRequestModeration(eventDto.isRequestModeration());
             if (eventDto.getParticipantLimit() != 0) event.setParticipantLimit(eventDto.getParticipantLimit());
-            if (!eventDto.isRequestModeration()) { event.setRequestModeration(true);}
+            eventDto.setRequestModeration(event.isRequestModeration());
             if (eventDto.isPaid()) {event.setPaid(true);}
 
             return event;
@@ -54,7 +59,7 @@ public class EventMapper {
         if (updateEventRequest.getCategory() != 0) {existingEvent.setAnnotation(updateEventRequest.getAnnotation());}
         if (updateEventRequest.getDescription() !=null) {existingEvent.setDescription(updateEventRequest.getDescription());}
         if (updateEventRequest.getEventDate() !=null) {existingEvent.setEventDate(updateEventRequest.getEventDate());}
-        if (updateEventRequest.isPaid()) { existingEvent.setPaid(true);}
+        if (updateEventRequest.getPaid()!=null) { existingEvent.setPaid(updateEventRequest.getPaid());}
         if (updateEventRequest.getParticipantLimit()!=existingEvent.getParticipantLimit())
         {existingEvent.setParticipantLimit(updateEventRequest.getParticipantLimit());}
         if (updateEventRequest.getTitle()!=null){existingEvent.setTitle(updateEventRequest.getTitle());}
@@ -73,11 +78,11 @@ public class EventMapper {
         eventFullDto.setId(event.getId());
         eventFullDto.setPaid(event.isPaid());
         eventFullDto.setParticipantLimit( event.getParticipantLimit());
-        eventFullDto.setRequestModeration(eventFullDto.isRequestModeration());
+        eventFullDto.setRequestModeration(event.isRequestModeration());
         eventFullDto.setTitle( event.getTitle());
         eventFullDto.setState( event.getState());
         eventFullDto.setLocation(new Location(event.getLat(), event.getLon()));
-        eventFullDto.setViews(eventFullDto.getViews());
+        eventFullDto.setViews((int) event.getViews());
         return eventFullDto;
     }
 
@@ -91,6 +96,10 @@ public class EventMapper {
         eventShortDto.setPaid(event.isPaid());
         eventShortDto.setTitle(event.getTitle());
         return eventShortDto;
+    }
+
+    public static EventMiniDto fromEventToMiniDto (Event event){
+        return new EventMiniDto(event.getId(), event.getTitle(), event.getEventDate());
     }
 
 
